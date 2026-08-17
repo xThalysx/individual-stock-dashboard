@@ -4,6 +4,12 @@ An Electron desktop application that brings company research, interactive market
 
 This project was designed and developed as a personal research platform with an emphasis on source transparency, configurable data integrations, and persistent local workflows.
 
+## Preview
+
+![Individual Stock Dashboard overview](docs/dashboard-overview.png)
+
+*Dashboard interface showing ticker lists, company research, interactive charting, and community-trend panels.*
+
 ## Highlights
 
 - Search and maintain ticker lists, watchlists, and custom stock categories.
