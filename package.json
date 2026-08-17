@@ -1,0 +1,42 @@
+{
+  "name": "stock-research-dashboard",
+  "version": "0.4.14",
+  "description": "An Electron desktop dashboard for individual stock research and market analysis.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node services/shortable-shares-service.test.js && node tests/short-squeeze.test.js",
+    "dist": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.personal.stockresearchdashboard",
+    "productName": "Individual Stock Dashboard",
+    "icon": "assets/individual-stock-dashboard.ico",
+    "electronDist": "node_modules/electron/dist",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+    "renderer/**/*",
+    "services/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "assets/individual-stock-dashboard.ico",
+        "to": "dashboard-tray.ico"
+      }
+    ],
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^37.0.0",
+    "electron-builder": "^26.0.0"
+  }
+}
+
