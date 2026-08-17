@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 80279)
-Total output lines: 3245
-
 const $ = id => document.getElementById(id);
 const trendsNavigationButton = document.createElement('button');
 trendsNavigationButton.id = 'trends-view-toggle';
@@ -270,13 +267,13 @@ async function loadSnapTradeState() { try { snapTradeState = await window.portfo
 function updateSnapTradeFields() {
   $('snaptrade-client-id').placeholder = snapTradeState.configured ? 'Saved locally - enter a new ID to replace it' : 'SnapTrade Personal Client ID';
   $('snaptrade-consumer-key').placeholder = snapTradeState.configured ? 'Saved locally - enter a new Consumer Key to replace it' : 'SnapTrade Consumer Key';
-  $('snaptrade-config-status').textContent = snapTradeState.configured ? 'SnapTrade Personal is configured.' : 'Add your SnapTrade Personal API key to connect Vanguard.';
+  $('snaptrade-config-status').textContent = snapTradeState.configured ? 'SnapTrade Personal is configured.' : 'Add your SnapTrade Personal API key to connect a brokerage.';
 }
 function renderBrokerageAccounts() {
   const element = $('brokerage-accounts');
   if (!element) return;
   const connected = snapTradeState.connections?.length || snapTradeState.portfolio?.accounts?.length || 0;
-  element.innerHTML = `<article class="brokerage-account"><div><strong>Vanguard Brokerage</strong><small>${connected ? `${connected} connected account${connected === 1 ? '' : 's'}` : (snapTradeState.configured ? 'Ready to connect through SnapTrade' : 'SnapTrade setup required')}</small></div><div class="brokerage-row-actions"><button id="snaptrade-connect" type="button" ${snapTradeState.configured ? '' : 'disabled'}>${connected ? 'Connect another' : 'Connect Vanguard'}</button><button id="snaptrade-sync" type="button" ${connected ? '' : 'disabled'}>Refresh</button></div></article>`;
+  element.innerHTML = `<article class="brokerage-account"><div><strong>Brokerage Connections</strong><small>${connected ? `${connected} connected account${connected === 1 ? '' : 's'}` : (snapTradeState.configured ? 'Ready to connect through SnapTrade' : 'SnapTrade setup required')}</small></div><div class="brokerage-row-actions"><button id="snaptrade-connect" type="button" ${snapTradeState.configured ? '' : 'disabled'}>${connected ? 'Connect another' : 'Connect brokerage'}</button><button id="snaptrade-sync" type="button" ${connected ? '' : 'disabled'}>Refresh</button></div></article>`;
   $('snaptrade-connect').onclick = async () => { try { await window.portfolioApp.connectSnapTrade(); $('snaptrade-config-status').textContent = 'SnapTrade Connection Portal opened. After a successful connection it will close automatically and refresh the dashboard.'; } catch (error) { $('snaptrade-config-status').textContent = error.message || 'Could not open SnapTrade.'; } };
   $('snaptrade-sync').onclick = () => { void refreshSnapTradePortfolio(true); };
 }
@@ -289,14 +286,14 @@ function maybeShowSnapTradeReconnectModal() {
   if (!requiresSnapTradeReconnect()) { snapTradeReconnectDismissed = false; return; }
   if (!portfolioPageOpen || snapTradeReconnectDismissed || !modal?.hidden) return;
   const brokenConnection = (snapTradeState.connections || []).find(connection => connection.disabled);
-  openSnapTradeReconnectModal({ connectionId: brokenConnection?.id || '', institution: brokenConnection?.institution || 'Vanguard' });
+  openSnapTradeReconnectModal({ connectionId: brokenConnection?.id || '', institution: brokenConnection?.institution || 'Brokerage' });
 }
 function renderPortfolioPage() {
   const portfolio = snapTradeState.portfolio || { accounts: [], holdings: [], errors: [] }, accountRows = portfolio.accounts || [], holdingRows = portfolio.holdings || [];
   const value = accountRows.reduce((total, account) => total + (Number(account.balances?.current) || 0), 0);
-  const accountMarkup = accountRows.length ? accountRows.map(account => `<article><div><strong>${escape(account.name || 'Investment account')}</strong><span>${escape(account.institution || 'Vanguard')}${account.mask ? ` - ${escape(account.mask)}` : ''}</span></div><small>${money(account.balances?.current)}</small></article>`).join('') : '<p>Connect Vanguard in Brokerage accounts to load your holdings.</p>';
+  const accountMarkup = accountRows.length ? accountRows.map(account => `<article><div><strong>${escape(account.name || 'Investment account')}</strong><span>${escape(account.institution || 'Brokerage')}${account.mask ? ` - ${escape(account.mask)}` : ''}</span></div><small>${money(account.balances?.current)}</small></article>`).join('') : '<p>Connect a brokerage account to load your holdings.</p>';
   const holdings = holdingRows.length ? `<section class="portfolio-holdings"><h3>Holdings</h3><table><thead><tr><th>Security</th><th>Quantity</th><th>Price</th><th>Market value</th></tr></thead><tbody>${holdingRows.map(holding => `<tr><td>${escape(holding.instrument?.symbol || holding.instrument?.ticker || holding.instrument?.description || holding.instrument?.name || 'Security')}</td><td>${Number(holding.quantity || 0).toLocaleString()}</td><td>${money(holding.price)}</td><td>${money(holding.value)}</td></tr>`).join('')}</tbody></table></section>` : '';
-  $('portfolio-page').innerHTML = `<div class="portfolio-heading"><div><h2>Portfolio</h2><p>${portfolio.lastSyncedAt ? `Last updated ${new Date(portfolio.lastSyncedAt).toLocaleString()}.` : 'Connect your Vanguard account through SnapTrade.'}</p></div><div class="portfolio-page-actions"><button id="portfolio-refresh" type="button" ${snapTradeState.configured ? '' : 'disabled'}>Refresh portfolio</button><button id="portfolio-manage-accounts" type="button">Manage brokerage accounts</button></div></div><section class="portfolio-summary"><article><span>Connected accounts</span><strong>${accountRows.length}</strong><small>SnapTrade Personal</small></article><article><span>Portfolio value</span><strong>${accountRows.length ? money(value) : 'Unavailable'}</strong><small>Reported brokerage balances</small></article><article><span>Holdings</span><strong>${holdingRows.length || '—'}</strong><small>Authorized positions</small></article></section><section class="portfolio-accounts"><h3>Brokerage accounts</h3>${accountMarkup}</section>${holdings}`;
+  $('portfolio-page').innerHTML = `<div class="portfolio-heading"><div><h2>Portfolio</h2><p>${portfolio.lastSyncedAt ? `Last updated ${new Date(portfolio.lastSyncedAt).toLocaleString()}.` : 'Connect a brokerage account through SnapTrade.'}</p></div><div class="portfolio-page-actions"><button id="portfolio-refresh" type="button" ${snapTradeState.configured ? '' : 'disabled'}>Refresh portfolio</button><button id="portfolio-manage-accounts" type="button">Manage brokerage accounts</button></div></div><section class="portfolio-summary"><article><span>Connected accounts</span><strong>${accountRows.length}</strong><small>SnapTrade Personal</small></article><article><span>Portfolio value</span><strong>${accountRows.length ? money(value) : 'Unavailable'}</strong><small>Reported brokerage balances</small></article><article><span>Holdings</span><strong>${holdingRows.length || '—'}</strong><small>Authorized positions</small></article></section><section class="portfolio-accounts"><h3>Brokerage accounts</h3>${accountMarkup}</section>${holdings}`;
   if (portfolio.errors?.length) $('portfolio-page').insertAdjacentHTML('beforeend', `<p class="portfolio-errors">${portfolio.errors.map(error => `${escape(error.institution)}: ${escape(error.message)}`).join('<br>')}</p>`);
   $('portfolio-refresh').onclick = () => { void refreshSnapTradePortfolio(); };
   $('portfolio-manage-accounts').onclick = () => { portfolioPageOpen = false; settingsPageOpen = true; updateWorkspaceView(); renderBrokerageAccounts(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -340,7 +337,7 @@ function renderPortfolioPage() {
     };
     return `<section class="portfolio-holdings" data-holding-table="${escape(accountId)}"><div class="portfolio-holdings-heading"><div class="holding-account-summary"><h3>${escape(account.institution || 'Brokerage')} — ${escape(account.name || 'Investment account')}</h3><p>${account.mask ? `Account ${escape(account.mask)}` : 'Investment account'} · ${rows.length} holding${rows.length === 1 ? '' : 's'}</p></div><div class="holding-heading-actions"><button type="button" class="holding-toggle" data-holding-toggle="${escape(accountId)}" aria-expanded="${expanded}">${expanded ? 'Hide table' : 'Show table'}</button></div><strong class="holding-total-balance">Total balance: ${money(account.balances?.current)}</strong><strong class="holding-cash-position">Cash position: ${Number.isFinite(account.balances?.cash) ? money(account.balances.cash) : 'Unavailable'}</strong></div><div class="holding-table-wrap" ${expanded ? '' : 'hidden'}><table><thead><tr>${heading('Security', 'security')}${heading('Quantity', 'quantity')}${heading('Price', 'price')}${heading('Market value', 'value')}${heading('Gain / loss %', 'gainLossPercent')}${heading('Gain / loss', 'gainLoss')}</tr></thead><tbody>${rows.length ? rows.map(holding => `<tr><td>${escape(holding.instrument?.symbol || holding.instrument?.ticker || holding.instrument?.description || holding.instrument?.name || 'Security')}</td><td>${Number(holding.quantity || 0).toLocaleString()}</td><td>${money(holding.price)}</td><td>${money(holding.value)}</td><td class="${Number(holding.gainLossPercent) > 0 ? 'holding-gain' : Number(holding.gainLossPercent) < 0 ? 'holding-loss' : 'holding-neutral'}">${Number.isFinite(holding.gainLossPercent) ? `${holding.gainLossPercent >= 0 ? '+' : ''}${holding.gainLossPercent.toFixed(2)}%` : '—'}</td><td class="${Number(holding.gainLoss) > 0 ? 'holding-gain' : Number(holding.gainLoss) < 0 ? 'holding-loss' : 'holding-neutral'}">${gainLossText(holding)}</td></tr>`).join('') : '<tr><td colspan="6" class="holding-empty">Holdings are still syncing from this brokerage.</td></tr>'}</tbody></table></div></section>`;
   }).join('');
-  $('portfolio-page').innerHTML = `<div class="portfolio-heading"><div><h2>Portfolio</h2><p>${portfolio.lastSyncedAt ? `Last updated ${new Date(portfolio.lastSyncedAt).toLocaleString()}.` : 'Connect your Vanguard account through SnapTrade.'}</p></div><div class="portfolio-page-actions"><button id="portfolio-refresh" type="button" ${snapTradeState.configured ? '' : 'disabled'}>Refresh portfolio</button></div></div><section class="portfolio-summary"><article><span>Connected accounts</span><strong>${accountRows.length}</strong><small>SnapTrade Personal</small></article><article><span>Portfolio value</span><strong>${accountRows.length ? money(value) : 'Unavailable'}</strong></article><article><span>Holdings</span><strong>${holdingRows.length || '—'}</strong><small>Authorized positions</small></article></section><section class="portfolio-accounts"><div class="portfolio-accounts-heading"><h3>Brokerage accounts</h3><button id="brokerage-accounts-toggle" type="button" class="brokerage-accounts-toggle" aria-label="${brokerageAccountsExpanded ? 'Minimize brokerage accounts' : 'Expand brokerage accounts'}" aria-expanded="${brokerageAccountsExpanded}">${brokerageAccountsExpanded ? '−' : '+'}</button></div><div ${brokerageAccountsExpanded ? '' : 'hidden'}>${accountRows.length ? accountRows.map(account => `<article><div><strong>${escape(account.name || 'Investment account')}</strong><span>${escape(account.institution || 'Vanguard')}${account.mask ? ` - ${escape(account.mask)}` : ''}</span></div><small>${money(account.balances?.current)}</small></article>`).join('') : '<p>Connect Vanguard in Brokerage accounts to load your holdings.</p>'}</div></section>${holdingTables}`;
+  $('portfolio-page').innerHTML = `<div class="portfolio-heading"><div><h2>Portfolio</h2><p>${portfolio.lastSyncedAt ? `Last updated ${new Date(portfolio.lastSyncedAt).toLocaleString()}.` : 'Connect a brokerage account through SnapTrade.'}</p></div><div class="portfolio-page-actions"><button id="portfolio-refresh" type="button" ${snapTradeState.configured ? '' : 'disabled'}>Refresh portfolio</button></div></div><section class="portfolio-summary"><article><span>Connected accounts</span><strong>${accountRows.length}</strong><small>SnapTrade Personal</small></article><article><span>Portfolio value</span><strong>${accountRows.length ? money(value) : 'Unavailable'}</strong></article><article><span>Holdings</span><strong>${holdingRows.length || '—'}</strong><small>Authorized positions</small></article></section><section class="portfolio-accounts"><div class="portfolio-accounts-heading"><h3>Brokerage accounts</h3><button id="brokerage-accounts-toggle" type="button" class="brokerage-accounts-toggle" aria-label="${brokerageAccountsExpanded ? 'Minimize brokerage accounts' : 'Expand brokerage accounts'}" aria-expanded="${brokerageAccountsExpanded}">${brokerageAccountsExpanded ? '−' : '+'}</button></div><div ${brokerageAccountsExpanded ? '' : 'hidden'}>${accountRows.length ? accountRows.map(account => `<article><div><strong>${escape(account.name || 'Investment account')}</strong><span>${escape(account.institution || 'Brokerage')}${account.mask ? ` - ${escape(account.mask)}` : ''}</span></div><small>${money(account.balances?.current)}</small></article>`).join('') : '<p>Connect a brokerage account to load your holdings.</p>'}</div></section>${holdingTables}`;
   if (portfolio.errors?.length) $('portfolio-page').insertAdjacentHTML('beforeend', `<p class="portfolio-errors">${portfolio.errors.map(error => `${escape(error.institution)}: ${escape(error.message)}`).join('<br>')}</p>`);
   $('portfolio-refresh').insertAdjacentHTML('afterend', `<button id="portfolio-manual-refresh" type="button" ${snapTradeState.configured ? '' : 'disabled'}>Manual refresh</button>`);
   $('portfolio-refresh').onclick = () => { void refreshSnapTradePortfolio(true); };
@@ -635,7 +632,7 @@ function renderBrokerageDiagnosticsPage() {
   $('diagnostics-settings').onclick = () => { brokerageDiagnosticsPageOpen = false; settingsPageOpen = true; updateWorkspaceView(); };
   page.querySelectorAll('[data-diagnostics-brokerage-reconnect]').forEach(button => {
     button.onclick = async () => {
-      const institution = button.dataset.diagnosticsBrokerageName || 'Vanguard';
+      const institution = button.dataset.diagnosticsBrokerageName || 'Brokerage';
       if (button.dataset.diagnosticsBrokerageDisabled === 'true') {
         openSnapTradeReconnectModal({ connectionId: button.dataset.diagnosticsBrokerageReconnect, institution });
         return;
@@ -1000,7 +997,1070 @@ function renderAiAgentPage() {
     const evidence = candidate.posts?.length
       ? candidate.posts.slice(0, 3).map(post => `<li><a href="${escape(post.url)}" target="_blank" rel="noreferrer">${escape(post.title)}</a><span>${escape(post.subreddit)} · ${new Date(post.created * 1000).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span></li>`).join('')
       : '<li><span>No underlying Reddit posts were retrievable. Treat the mention count as unverified.</span></li>';
-    const v…30279 tokens truncated….trim(); if (!Number.isInteger(index) || !d.notes[index] || !value) return; d.notes[index][1] = value; delete noteEditDrafts[`${ticker}:${index}`]; editingNote = null; d.thesisGenerated = false; delete d.thesisGeneratedFrom; persist(); renderContent(); void updateThesis(ticker); });
+    const videos = candidate.videos?.length
+      ? `<p><b>Public YouTube discovery results:</b></p><ul>${candidate.videos.slice(0, 3).map(video => `<li><a href="${escape(video.url)}" target="_blank" rel="noreferrer">${escape(video.title)}</a><span>${escape(video.channel)} Â· ${video.publishedAt ? new Date(video.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'date unavailable'}</span></li>`).join('')}</ul>`
+      : '';
+    const filings = candidate.filings?.length ? `<p><b>Recent SEC filings:</b> ${candidate.filings.map(item => `${escape(item.form)} (${escape(item.date)})`).join(', ')}</p>` : `<p><b>SEC filings:</b> ${escape(candidate.secNotice || 'DATA UNAVAILABLE.')}</p>`;
+    const media = candidate.articles?.length ? `<p><b>Recent public media:</b></p><ul>${candidate.articles.slice(0, 3).map(article => `<li><a href="${escape(article.url)}" target="_blank" rel="noreferrer">${escape(article.title)}</a><span>${escape(article.domain)}</span></li>`).join('')}</ul>` : `<p><b>Public media:</b> ${escape(candidate.mediaNotice || 'DATA UNAVAILABLE.')}</p>`;
+    return `<article class="agent-candidate-card">
+      <div class="agent-candidate-heading"><div><button type="button" class="agent-ticker" data-agent-ticker="${escape(candidate.symbol)}">${escape(candidate.symbol)}</button><h3>${escape(candidate.name)}</h3></div><strong>${candidate.score}<span>/100</span></strong></div>
+      <p class="agent-assessment">${escape(candidate.legacyUnverified ? 'Previously saved — needs current evidence validation' : (candidate.assessment?.label || 'Unverified'))}</p>
+      <p><b>Last evaluated:</b> ${escape(candidate.lastScanned ? new Date(candidate.lastScanned).toLocaleString() : 'DATA UNAVAILABLE.')} · Cycle ${escape(String(candidate.cycle || 1))}</p>
+      <p><b>Observed change:</b> ${escape(candidate.observedChange)}</p>
+      <p><b>Consumer / industry evidence:</b> ${escape(candidate.consumerEvidence)}</p>
+      <p><b>Wall Street awareness:</b> ${escape(candidate.awareness)}</p>
+      <p><b>Catalyst:</b> ${escape(candidate.catalyst)}</p>
+      <p><b>Core thesis:</b> ${escape(candidate.thesis)}</p>
+      <p><b>Disconfirmation:</b> ${escape(candidate.disconfirmation)}</p>
+      <div class="agent-score-grid"><span>Behavioral change <b>${candidate.breakdown.behavioral}/15</b></span><span>Acceleration <b>${candidate.breakdown.acceleration}/10</b></span><span>Commerce <b>${candidate.breakdown.commerce}/10</b></span><span>Independent confirmation <b>${candidate.breakdown.independent}/10</b></span><span>Financial materiality <b>${candidate.breakdown.materiality}/15</b></span><span>Wall Street ignorance <b>${candidate.breakdown.awareness}/15</b></span><span>Penalties <b>-${candidate.penalties}</b></span><span>Data quality <b>${candidate.dataQuality}</b></span></div>
+      <p class="agent-action"><b>Research posture:</b> ${escape(candidate.legacyUnverified ? 'This lead was saved before the current evidence rules. Treat it as a historical reference until the agent has reevaluated it.' : (candidate.assessment?.action || 'DATA UNAVAILABLE.'))}</p>
+      <details><summary>Sources and recent evidence</summary><ul>${evidence}</ul>${videos}${filings}${media}<p><a href="https://www.reddit.com/search/?q=${encodeURIComponent(candidate.symbol)}" target="_blank" rel="noreferrer">Search Reddit for ${escape(candidate.symbol)}</a></p></details>
+    </article>`;
+  }).join('');
+  const scanDone = dailyAgentScanCompleted();
+  const output = aiAgentEvidenceOutput;
+  const outputCandidates = output?.candidates?.length
+    ? `<div class="agent-output-candidates">${output.candidates.map(candidate => `<section><b>${escape(candidate.ticker || candidate.company || 'No company identified')}</b><span>${escape(candidate.confidence || 'low')} confidence</span><p>${escape(candidate.observedChange || 'No usable observed change extracted.')}</p><small>${escape((candidate.categories || []).join(', ') || 'No behavioral category identified.')}</small><p class="agent-output-limits">${escape(candidate.limitations || 'DATA UNAVAILABLE.')}</p></section>`).join('')}</div>`
+    : '<p class="agent-output-empty">No public company or usable behavioral evidence was identified from the submitted material.</p>';
+  const outputPanel = `<aside class="agent-output-panel" aria-live="polite"><div><span class="agent-eyebrow">EVIDENCE INBOX</span><h3>Agent Output</h3><p class="agent-output-subtitle">What the agent extracted from your latest submitted evidence.</p></div>${output ? `<p class="agent-output-time">${escape(output.createdAt ? new Date(output.createdAt).toLocaleString() : 'Just now')}${output.usedImage ? ' · screenshot analyzed' : ''}</p><p class="agent-output-summary"><b>Assessment:</b> ${escape(output.summary || 'DATA UNAVAILABLE.')}</p><div class="agent-output-status ${output.linked ? 'accepted' : 'disregarded'}">${output.linked ? `${output.linked} meaningful candidate${output.linked === 1 ? '' : 's'} added or updated.` : `Disregarded: ${escape(output.rejectionReason || 'The evidence did not meet the social-arbitrage requirements.')}`}</div>${outputCandidates}` : '<p class="agent-output-empty">Submit text or a screenshot through Evidence Inbox to see the extracted company, behavior signals, limitations, and whether the evidence affected the leaderboard.</p>'}</aside>`;
+  page.innerHTML = `<div class="agent-page-heading"><div><span class="agent-eyebrow">SOCIAL ARBITRAGE</span><h2>AI Agent</h2><p>Surfaces research leads from unusual community attention and checks the signal against recent discussion and market movement.</p></div><button id="agent-run-scan" type="button" ${aiAgentLoading ? 'disabled' : ''}>${aiAgentLoading ? 'Scanning…' : scanDone ? 'Today’s scan complete' : 'Run today’s scan'}</button></div>
+    <section class="agent-disclosure"><b>Research assistance only.</b> Each daily pass saves a local score for the next 20 listed common stocks and keeps a combined top-10 leaderboard. Saved candidates stay visible through scans and agent updates; new evidence updates or reorders the list instead of clearing it. Once the entire universe is covered, the next cycle rescans and compares new evidence with the prior score. Scores above 75 require a separate red-team review before any consideration. Missing evidence is shown as DATA UNAVAILABLE; no facts are inferred from silence.</section>
+    <section class="agent-evidence-inbox"><div><h3>Evidence Inbox</h3><p>Paste observations, article excerpts, public posts, or notes. The local AI identifies explicitly named public companies, classifies behavior evidence, and saves the original text locally.</p><p><b>Important:</b> A URL by itself cannot be read. Paste the relevant post text, video transcript, caption, article excerpt, and useful comments; include the source URL and date for reference. TikTok, Instagram, X, Reddit, and YouTube material works when its relevant text is included here. You can also paste a screenshot directly into this box or drag a PNG, JPG, or WebP screenshot onto it; visible text is analyzed locally, but the image itself is not saved.</p></div><textarea id="agent-evidence-text" maxlength="40000" placeholder="Paste text, paste a screenshot, or drag a screenshot into this box. Include the company or ticker, source URL, date, and observed behavior when available."></textarea><div class="agent-image-attachment"><input id="agent-evidence-image" type="file" accept="image/png,image/jpeg,image/webp" /><span id="agent-evidence-image-status">${aiAgentEvidenceImage ? `Screenshot attached: ${escape(aiAgentEvidenceImage.name)}` : 'Paste or drag a screenshot into the box above (PNG, JPG, or WebP; up to about 6 MB). The file picker is optional.'}</span><button id="agent-clear-evidence-image" type="button" ${aiAgentEvidenceImage ? '' : 'disabled'}>Remove screenshot</button></div><div id="agent-evidence-image-preview" class="agent-evidence-image-preview" ${aiAgentEvidenceImage ? '' : 'hidden'}></div><div class="agent-inbox-actions"><button id="agent-analyze-evidence" type="button" ${aiAgentLoading ? 'disabled' : ''}>Analyze And Save Evidence</button><span id="agent-evidence-status">${evidenceInboxEntries().length ? `${evidenceInboxEntries().length} saved evidence entries.` : 'No saved Evidence Inbox entries yet.'}</span></div></section>
+    <div class="agent-scan-status"><span>${escape(aiAgentStatus || scanned)}</span><span>Sources: official U.S. listing directories, Nasdaq market screen, SEC EDGAR, GDELT, Reddit, and public YouTube data</span></div>
+    <div class="agent-results">${cards || `<section class="agent-empty">${aiAgentScannedAt ? `<h3>NO QUALIFYING SOCIAL-ARBITRAGE OPPORTUNITY FOUND</h3><p>The highest preliminary score was ${Number.isFinite(aiAgentTopScore) ? `${aiAgentTopScore}/100` : 'unavailable'}. The available evidence did not establish a verified behavioral change, material company exposure, market-awareness gap, and catalyst together.</p>` : '<h3>Ready to scan</h3><p>Run a scan to test currently available public evidence. No trades or external actions will be taken.</p>'}</section>`}</div>${outputPanel}`;
+  const outputNode = page.querySelector('.agent-output-panel');
+  const agentLayout = document.createElement('div');
+  agentLayout.className = 'agent-page-layout';
+  const agentMain = document.createElement('div');
+  agentMain.className = 'agent-page-main';
+  [...page.children].forEach(child => { if (child !== outputNode) agentMain.append(child); });
+  agentLayout.append(agentMain, outputNode);
+  page.replaceChildren(agentLayout);
+  $('agent-run-scan').onclick = () => {
+    if (dailyAgentScanCompleted()) {
+      aiAgentStatus = 'Today’s daily scan has already completed. The saved rolling top 10 is shown above; the next automatic scan will run the first time the dashboard starts on the next U.S. trading day.';
+      renderAiAgentPage();
+      return;
+    }
+    void runAiAgentScan({ daily: true });
+  };
+  const attachmentStatus = $('agent-evidence-image-status');
+  const imagePreview = $('agent-evidence-image-preview');
+  const renderImagePreview = () => {
+    imagePreview.replaceChildren();
+    if (!aiAgentEvidenceImage?.dataUrl) { imagePreview.hidden = true; return; }
+    const image = document.createElement('img');
+    image.src = aiAgentEvidenceImage.dataUrl;
+    image.alt = 'Evidence screenshot preview';
+    imagePreview.append(image);
+    imagePreview.hidden = false;
+  };
+  const setEvidenceImage = file => {
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) { attachmentStatus.textContent = 'Use a PNG, JPG, or WebP screenshot.'; return; }
+    if (file.size > 6 * 1024 * 1024) { attachmentStatus.textContent = 'Use a screenshot smaller than about 6 MB.'; return; }
+    const reader = new FileReader();
+    reader.onload = () => { aiAgentEvidenceImage = { dataUrl: String(reader.result || ''), name: file.name || 'pasted-screenshot', type: file.type, size: file.size }; attachmentStatus.textContent = `Screenshot attached: ${aiAgentEvidenceImage.name}. It will be analyzed locally and not saved.`; $('agent-clear-evidence-image').disabled = false; renderImagePreview(); };
+    reader.readAsDataURL(file);
+  };
+  $('agent-evidence-image').onchange = event => setEvidenceImage(event.target.files?.[0]);
+  $('agent-clear-evidence-image').onclick = () => { aiAgentEvidenceImage = null; $('agent-evidence-image').value = ''; attachmentStatus.textContent = 'Paste or drag a screenshot into the box above (PNG, JPG, or WebP; up to about 6 MB). The file picker is optional.'; $('agent-clear-evidence-image').disabled = true; renderImagePreview(); };
+  const evidenceTextBox = $('agent-evidence-text');
+  const imageFromItems = items => [...(items || [])].map(item => item.kind === 'file' ? item.getAsFile?.() : item).find(item => item?.type?.startsWith('image/'));
+  evidenceTextBox.addEventListener('paste', event => {
+    const file = imageFromItems(event.clipboardData?.items) || [...(event.clipboardData?.files || [])].find(item => item.type?.startsWith('image/'));
+    if (file) { event.preventDefault(); setEvidenceImage(file); }
+  });
+  evidenceTextBox.addEventListener('dragover', event => { if (imageFromItems(event.dataTransfer?.items) || event.dataTransfer?.files?.length) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } });
+  evidenceTextBox.addEventListener('drop', event => {
+    const file = imageFromItems(event.dataTransfer?.items) || [...(event.dataTransfer?.files || [])].find(item => item.type?.startsWith('image/'));
+    if (file) { event.preventDefault(); setEvidenceImage(file); }
+  });
+  renderImagePreview();
+  $('agent-analyze-evidence').onclick = async () => {
+    const input = $('agent-evidence-text');
+    const status = $('agent-evidence-status');
+    const text = input.value.trim();
+    if (text.length < 25 && !aiAgentEvidenceImage) { status.textContent = 'Paste evidence or attach a screenshot before analyzing it.'; return; }
+    $('agent-analyze-evidence').disabled = true;
+    status.textContent = 'Analyzing the pasted evidence locally…';
+    try {
+      const result = await analyzeEvidenceInboxText(text, aiAgentEvidenceImage);
+      aiAgentEvidenceImage = null;
+      aiAgentStatus = result.linked ? `Evidence Inbox saved. ${result.linked} meaningful, explicitly identified ticker${result.linked === 1 ? '' : 's'} was added or updated in the rolling leaderboard. ${result.disregarded ? `${result.disregarded} weak or unsupported candidate${result.disregarded === 1 ? ' was' : 's were'} disregarded.` : ''}` : `Evidence Inbox saved as disregarded. ${result.rejectionReason}`;
+      renderAiAgentPage();
+    } catch (error) {
+      status.textContent = error.message || 'Could not analyze this Evidence Inbox entry.';
+      $('agent-analyze-evidence').disabled = false;
+    }
+  };
+  page.querySelectorAll('[data-agent-ticker]').forEach(button => button.onclick = () => openPortfolioTicker(button.dataset.agentTicker));
+}
+async function runAiAgentScan({ automated = false, daily = false } = {}) {
+  if (aiAgentLoading) return;
+  aiAgentLoading = true;
+  agentAutomationLastStarted = Date.now();
+  aiAgentStatus = 'Screening the U.S. listed-stock universe, then collecting evidence for the leading discovery shortlist…';
+  renderAiAgentPage();
+  try {
+    const universe = await window.portfolioApp.usCommonStockUniverse();
+    const universeCount = universe.length;
+    if (!universeCount) throw new Error('The official U.S. listing directories returned no common-stock candidates.');
+    const cycleState = agentUniverseState(universe);
+    const batch = nextUniverseBatch(universe, cycleState, 20);
+    const leads = batch.rows;
+    const symbols = leads.map(item => item.symbol);
+    const [marketRows, postAttempts, youtubeAttempts, secAttempts, mediaAttempts] = await Promise.all([
+      window.portfolioApp.refreshAllMarketData(symbols).catch(() => []),
+      Promise.allSettled(symbols.map(symbol => window.portfolioApp.redditPosts(symbol))),
+      settings.youtubeApiKey
+        ? Promise.allSettled(leads.map(item => window.portfolioApp.youtubeEvidence({ symbol: item.symbol, name: item.name })))
+        : Promise.resolve([]),
+      Promise.allSettled(symbols.map(symbol => window.portfolioApp.secAgentEvidence(symbol))),
+      Promise.allSettled(leads.map(item => window.portfolioApp.gdeltAgentEvidence({ symbol: item.symbol, name: item.name })))
+    ]);
+    const marketBySymbol = Object.fromEntries([
+      ...leads.map(item => [item.symbol, item]),
+      ...(marketRows || []).map(item => [item.symbol, item])
+    ]);
+    const previous = cycleState.scanned || {};
+    const allCandidates = leads.map((lead, index) => {
+      const posts = postAttempts[index]?.status === 'fulfilled' ? (postAttempts[index].value.posts || []) : [];
+      const videos = youtubeAttempts[index]?.status === 'fulfilled' ? (youtubeAttempts[index].value.videos || []) : [];
+      const sec = secAttempts[index]?.status === 'fulfilled' ? secAttempts[index].value : { filings: [], notice: 'DATA UNAVAILABLE.' };
+      const media = mediaAttempts[index]?.status === 'fulfilled' ? mediaAttempts[index].value : { articles: [], notice: 'DATA UNAVAILABLE.' };
+      const evidence = agentEvidenceFromPosts(posts);
+      const youtubeEvidence = agentEvidenceFromPosts(videos.map(video => ({ title: video.title, body: video.description, subreddit: 'YouTube' })));
+      const consumerCommunities = new Set([...evidence.consumer.map(post => post.subreddit), ...youtubeEvidence.consumer.map(() => 'YouTube')].filter(Boolean));
+      const priorMentions = Number(previous?.[lead.symbol]?.mentions);
+      const observedSignals = evidence.purchaseIntent.length + evidence.confirmedPurchases.length + evidence.repeatPurchases.length + evidence.supplyConstraints.length + evidence.adoption.length + evidence.switching.length + youtubeEvidence.purchaseIntent.length + youtubeEvidence.confirmedPurchases.length + youtubeEvidence.repeatPurchases.length + youtubeEvidence.supplyConstraints.length + youtubeEvidence.adoption.length + youtubeEvidence.switching.length;
+      const consumerEvidenceCount = evidence.consumer.length + youtubeEvidence.consumer.length;
+      const behavioral = Math.min(15, evidence.consumer.length * 2 + youtubeEvidence.consumer.length + Math.min(5, observedSignals));
+      const acceleration = Number.isFinite(priorMentions) && priorMentions > 0
+        ? Math.round(Math.min(10, Math.max(0, ((posts.length - priorMentions) / priorMentions) * 10))) : 0;
+      const commerce = Math.min(10, evidence.purchaseIntent.length * 2 + evidence.confirmedPurchases.length * 3 + evidence.repeatPurchases.length * 3 + evidence.supplyConstraints.length * 2 + youtubeEvidence.purchaseIntent.length + youtubeEvidence.confirmedPurchases.length * 2 + youtubeEvidence.repeatPurchases.length * 2 + youtubeEvidence.supplyConstraints.length);
+      // Results from an independent platform count only as discovery evidence.
+      // They do not by themselves establish purchases, revenue, or a trade thesis.
+      const independent = Math.min(10, consumerCommunities.size * 3 + (consumerCommunities.size >= 3 ? 1 : 0) + (videos.length >= 3 ? 2 : videos.length ? 1 : 0) + (media.articles.length >= 3 ? 1 : 0));
+      const spread = 0; // Public post data does not reliably identify geography or demographics.
+      const materiality = 0; // No reliable incremental-revenue or consensus data is available in this scan.
+      const unexpectedness = 0; // Requires management, analyst, or consensus comparison data.
+      const awareness = evidence.investor.length === 0 && evidence.consumer.length >= 3 ? 6 : 0;
+      const catalyst = 0; // A dated information-parity event was not independently verified.
+      const riskReward = 0; // Valuation and downside cannot be supported from this evidence alone.
+      const baseScore = behavioral + acceleration + commerce + independent + spread + materiality + unexpectedness + awareness + catalyst + riskReward;
+      const dailyMove = Math.abs(Number(marketBySymbol[lead.symbol]?.quote?.dp) || 0);
+      let penalties = 0;
+      // Unknown is not negative evidence. Penalties apply only to concrete issues
+      // observed in the evidence, rather than to missing data by default.
+      if (!consumerEvidenceCount || evidence.investor.length > consumerEvidenceCount) penalties += 20;
+      if (consumerEvidenceCount && consumerCommunities.size <= 1) penalties += 15;
+      if (dailyMove >= 50) penalties += 10;
+      const score = Math.round(boundedAgentScore(baseScore - penalties));
+      const meaningful = consumerEvidenceCount > 0 && observedSignals > 0 && evidence.investor.length <= consumerEvidenceCount && score >= 8;
+      const assessment = agentAssessment(score);
+      const observedChange = (posts.length || videos.length) ? `${evidence.consumer.length} consumer/industry-style and ${evidence.investor.length} investor-style Reddit posts plus ${youtubeEvidence.consumer.length} consumer/industry-style public YouTube results were retrieved. This is discovery evidence, not verified demand data.` : 'DATA UNAVAILABLE.';
+      const consumerEvidence = consumerEvidenceCount ? `${evidence.confirmedPurchases.length + youtubeEvidence.confirmedPurchases.length} confirmed-purchase, ${evidence.repeatPurchases.length + youtubeEvidence.repeatPurchases.length} repeat-purchase, ${evidence.supplyConstraints.length + youtubeEvidence.supplyConstraints.length} supply-constraint, and ${evidence.switching.length + youtubeEvidence.switching.length} brand-switching statements were detected. These are keyword classifications, not independently verified sales data.` : 'DATA UNAVAILABLE.';
+      const awarenessLabel = evidence.investor.length ? 'MEDIUM — investor-style discussion appears in the retrieved public posts; broader Wall Street awareness is DATA UNAVAILABLE.' : 'LOW (preliminary) — no investor-style discussion appeared in the retrieved posts; broader Wall Street awareness is DATA UNAVAILABLE.';
+      const thesis = `The market expectation is DATA UNAVAILABLE. Public posts provide a preliminary behavior hypothesis only; no verified economic exposure map, financial materiality estimate, or information-parity catalyst has been established.`;
+      return { symbol: lead.symbol, name: lead.name || lead.symbol, mentions: posts.length, posts, videos, filings: sec.filings || [], secNotice: sec.notice, articles: media.articles || [], mediaNotice: media.notice, score, meaningful, assessment, observedChange, consumerEvidence, awareness: awarenessLabel, catalyst: 'DATA UNAVAILABLE.', thesis, disconfirmation: 'Any verified evidence that demand is not recurring, is not commercial, lacks company exposure, or is already reflected in estimates invalidates this hypothesis.', penalties, dataQuality: (posts.length || videos.length || media.articles?.length || sec.filings?.length) ? 'LOW' : 'LOW', breakdown: { behavioral, acceleration, commerce, independent, materiality, awareness } };
+    }).sort((a, b) => b.score - a.score);
+    const completedAt = new Date().toISOString();
+    const priorScores = Object.fromEntries(allCandidates.map(candidate => [candidate.symbol, Number(previous?.[candidate.symbol]?.score) || 0]));
+    allCandidates.forEach(candidate => { candidate.lastScanned = completedAt; candidate.cycle = cycleState.cycle; });
+    const qualifyingCandidates = allCandidates.filter(candidate => candidate.meaningful);
+    // Preserve legacy saved leads while new scans only add candidates that pass
+    // the current gate. A later validated result for the same symbol replaces
+    // the legacy record.
+    const leaders = new Map((cycleState.leaders || []).map(candidate => [candidate.symbol, candidate]));
+    qualifyingCandidates.forEach(candidate => leaders.set(candidate.symbol, candidate));
+    const retainedLeaders = [...leaders.values()].sort((a, b) => b.score - a.score || new Date(b.lastScanned || 0) - new Date(a.lastScanned || 0)).slice(0, 100);
+    const highPriorityCandidates = qualifyingCandidates.filter(candidate => candidate.score >= 75);
+    const newTopLeads = highPriorityCandidates.filter(candidate => priorScores[candidate.symbol] < 75);
+    allCandidates.forEach(candidate => { cycleState.scanned[candidate.symbol] = { score: candidate.score, mentions: Number(candidate.mentions) || 0, lastScanned: completedAt, cycle: cycleState.cycle }; });
+    cycleState.cursor = batch.nextCursor;
+    if (batch.wraps) cycleState.cycle += 1;
+    cycleState.leaders = retainedLeaders;
+    settings.agentUniverseScan = cycleState;
+    // Preserve the combined rolling leaderboard, not just today's twenty stocks.
+    aiAgentCandidates = retainedLeaders.slice(0, 10);
+    aiAgentTopScore = aiAgentCandidates[0]?.score ?? null;
+    aiAgentScannedAt = new Date();
+    if (daily) {
+      const east = easternTimeParts();
+      settings.agentAutomation = { ...settings.agentAutomation, lastDailyScanDate: `${east.year}-${east.month}-${east.day}` };
+    }
+    await window.portfolioApp.saveSettings(settings);
+    updateAgentAutomationUi();
+    if (automated && newTopLeads.length) {
+      const symbols = newTopLeads.slice(0, 3).map(candidate => `${candidate.symbol} (${candidate.score})`).join(', ');
+      await window.portfolioApp.notifyAgent({ title: 'New high-priority research lead', body: `${symbols}${newTopLeads.length > 3 ? ` and ${newTopLeads.length - 3} more` : ''}. Open Individual Stock Dashboard to review evidence.` });
+    }
+    aiAgentStatus = aiAgentCandidates.length
+      ? `Rolling universe scan complete: ${batch.start + 1}-${Math.min(batch.start + leads.length, universeCount)} of ${universeCount.toLocaleString()} stocks in cycle ${cycleState.cycle - (batch.wraps ? 1 : 0)}. ${qualifyingCandidates.length} of ${leads.length} met the meaningful-evidence gate. Top 10 combines all completed qualifying scans (highest: ${aiAgentTopScore ?? 'unavailable'}).${batch.wraps ? ' The next scan begins a fresh comparison cycle.' : ''}`
+      : `NO QUALIFYING SOCIAL-ARBITRAGE OPPORTUNITY FOUND · highest preliminary score: ${aiAgentTopScore ?? 'unavailable'}`;
+  } catch (error) {
+    aiAgentStatus = `${error.message || 'The agent scan could not be completed.'} Previously saved top-10 results remain available.`;
+  } finally {
+    aiAgentLoading = false;
+    renderAiAgentPage();
+  }
+}
+$('navigation-back').onclick = navigateWorkspaceBack;
+$('dashboard-view-toggle').onclick = openDashboard;
+$('portfolio-view-toggle').onclick = () => {
+  showWorkspacePage('portfolio');
+  if (portfolioPageOpen) {
+    // Render the saved snapshot first, then retrieve the latest broker state in the
+    // background so the holdings tables are populated on the first open.
+    void refreshPortfolioQuotes();
+    void refreshSnapTradePortfolio();
+  }
+};
+$('macro-view-toggle').onclick = () => {
+  showWorkspacePage('macro');
+  if (macroPageOpen && !macroData) void refreshMacroData();
+};
+$('trends-view-toggle').onclick = () => {
+  showWorkspacePage('trends');
+  if (trendsPageOpen && !trendsData && (settings.trendsTerms || []).length) void refreshTrendsData();
+  if (trendsPageOpen && trackedTrendIndexes().length) void refreshTrackedTrendIndexes();
+};
+$('ai-agent-view-toggle').onclick = () => { showWorkspacePage('ai-agent'); };
+$('settings-view-toggle').onclick = () => { showWorkspacePage('settings'); };
+$('brokerage-diagnostics-open').onclick = () => { showWorkspacePage('diagnostics'); };
+$('save-snaptrade-config').onclick = async () => {
+  const clientId = $('snaptrade-client-id').value.trim(), consumerKey = $('snaptrade-consumer-key').value.trim();
+  if (!clientId || !consumerKey) { $('snaptrade-config-status').textContent = 'Enter both a Client ID and Consumer Key.'; return; }
+  try { snapTradeState = await window.portfolioApp.saveSnapTradeConfig({ clientId, consumerKey }); $('snaptrade-client-id').value = ''; $('snaptrade-consumer-key').value = ''; updateSnapTradeFields(); renderBrokerageAccounts(); }
+  catch (error) { $('snaptrade-config-status').textContent = error.message || 'Could not save SnapTrade configuration.'; }
+};
+async function refreshSnapTradePortfolio(userInitiated = false) {
+  if (portfolioRefreshInProgress || !snapTradeState.configured) return;
+  portfolioRefreshInProgress = true;
+  if (portfolioPageOpen) {
+    const button = $('portfolio-refresh');
+    if (button) { button.disabled = true; button.classList.add('is-loading'); button.innerHTML = '<i aria-hidden="true"></i> Refreshing…'; }
+  }
+  try {
+    $('snaptrade-config-status').textContent = 'Refreshing portfolio from SnapTrade...';
+    snapTradeState.portfolio = await window.portfolioApp.syncSnapTrade();
+    await loadSnapTradeState();
+    renderBrokerageAccounts();
+    void refreshPortfolioQuotes();
+    $('snaptrade-config-status').textContent = `Portfolio updated ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`;
+  } catch (error) {
+    $('snaptrade-config-status').textContent = error.message || 'Portfolio refresh failed.';
+  } finally {
+    portfolioRefreshInProgress = false;
+    if (portfolioPageOpen) renderPortfolioPage();
+    if (brokerageDiagnosticsPageOpen) renderBrokerageDiagnosticsPage();
+    if (userInitiated && requiresSnapTradeReconnect()) {
+      snapTradeReconnectDismissed = false;
+      requestAnimationFrame(maybeShowSnapTradeReconnectModal);
+    }
+  }
+}
+async function requestSnapTradeManualRefresh() {
+  const modal = $('snaptrade-manual-refresh-modal');
+  const confirm = $('snaptrade-manual-refresh-confirm');
+  const cancel = $('snaptrade-manual-refresh-cancel');
+  const copy = $('snaptrade-manual-refresh-copy');
+  const status = $('snaptrade-manual-refresh-status');
+  confirm.disabled = true;
+  cancel.disabled = true;
+  status.hidden = false;
+  status.className = 'manual-refresh-status is-loading';
+  status.textContent = 'Requesting a manual holdings sync from SnapTrade…';
+  try {
+    const result = await window.portfolioApp.manualRefreshSnapTrade();
+    const names = result.scheduled.map(item => item.institution).join(', ');
+    const message = `Manual sync queued for ${names}. SnapTrade processes this asynchronously; the portfolio will check again shortly.`;
+    copy.textContent = 'SnapTrade accepted the manual sync request.';
+    status.className = 'manual-refresh-status is-success';
+    status.textContent = message;
+    if ($('snaptrade-config-status')) $('snaptrade-config-status').textContent = message;
+    if ($('diagnostics-status')) $('diagnostics-status').textContent = message;
+    setTimeout(() => { void refreshSnapTradePortfolio(); }, 15000);
+    setTimeout(() => { void refreshSnapTradePortfolio(); }, 60000);
+    setTimeout(() => {
+      modal.hidden = true;
+      confirm.disabled = false;
+      cancel.disabled = false;
+      cancel.textContent = 'Cancel';
+      copy.textContent = 'This asks SnapTrade to queue a fresh holdings sync for every active brokerage connection. It can take several minutes. SnapTrade may charge for this request or reject it if your plan does not include manual refresh.';
+      status.hidden = true;
+      status.className = 'manual-refresh-status';
+    }, 1400);
+  } catch (error) {
+    const message = error.message || 'SnapTrade could not schedule a manual sync.';
+    copy.textContent = 'SnapTrade did not accept the manual sync request.';
+    status.className = 'manual-refresh-status is-error';
+    status.textContent = message;
+    cancel.disabled = false;
+    cancel.textContent = 'Close';
+    if ($('snaptrade-config-status')) $('snaptrade-config-status').textContent = message;
+    if ($('diagnostics-status')) $('diagnostics-status').textContent = message;
+  } finally {
+    if (!status.classList.contains('is-success')) confirm.disabled = false;
+  }
+}
+async function refreshPortfolioQuotes() {
+  const portfolio = snapTradeState.portfolio;
+  if (portfolioQuoteRefreshInProgress || !portfolio?.holdings?.length) return;
+  portfolio.holdings = portfolio.holdings.filter(isOpenPortfolioHolding);
+  const symbols = [...new Set(portfolio.holdings.map(holding => String(holding.instrument?.symbol || holding.instrument?.ticker || '').toUpperCase()).filter(symbol => /^[A-Z][A-Z0-9.-]{0,9}$/.test(symbol)))];
+  if (!symbols.length) return;
+  portfolioQuoteRefreshInProgress = true;
+  try {
+    const updates = await window.portfolioApp.refreshAllMarketData(symbols);
+    const quotes = new Map((updates || []).filter(item => item?.quote && Number.isFinite(item.quote.c)).map(item => [String(item.symbol).toUpperCase(), item.quote.c]));
+    if (!quotes.size) return;
+    portfolio.holdings.forEach(holding => {
+      const symbol = String(holding.instrument?.symbol || holding.instrument?.ticker || '').toUpperCase();
+      const price = quotes.get(symbol);
+      if (!Number.isFinite(price) || holding.instrument?.kind === 'option') return;
+      holding.price = price;
+      holding.value = Number(holding.quantity || 0) * price;
+      const costBasis = Number(holding.quantity || 0) * Number(holding.averagePrice);
+      holding.gainLoss = Number.isFinite(costBasis) ? holding.value - costBasis : null;
+      holding.gainLossPercent = Number.isFinite(costBasis) && costBasis !== 0 ? (holding.gainLoss / Math.abs(costBasis)) * 100 : null;
+    });
+    (portfolio.accounts || []).forEach(account => {
+      const positionsValue = portfolio.holdings.filter(holding => holding.accountId === account.id).reduce((total, holding) => total + (Number(holding.value) || 0), 0);
+      const cash = Number(account.balances?.cash);
+      if (Number.isFinite(cash)) account.balances.current = positionsValue + cash;
+    });
+    portfolioQuotesUpdatedAt = new Date();
+    if (portfolioPageOpen) renderPortfolioPage();
+  } catch { /* Keep the last broker-provided values until the next fast quote update. */ }
+  finally { portfolioQuoteRefreshInProgress = false; }
+}
+window.portfolioApp.onSnapTradeUpdated(() => {
+  void loadSnapTradeState().then(() => {
+    const result = snapTradeState.portalResult;
+    if (result?.status === 'SUCCESS') {
+      const message = 'Brokerage connection confirmed. Refreshing the portfolio data…';
+      if ($('snaptrade-config-status')) $('snaptrade-config-status').textContent = message;
+      if ($('diagnostics-status')) $('diagnostics-status').textContent = message;
+    } else if (result?.status && result.status !== 'ABANDONED') {
+      const message = `Brokerage connection was not completed${result.errorCode ? ` (${result.errorCode})` : ''}${result.detail ? `: ${result.detail}` : '.'}`;
+      if ($('snaptrade-config-status')) $('snaptrade-config-status').textContent = message;
+      if ($('diagnostics-status')) $('diagnostics-status').textContent = message;
+    }
+    renderBrokerageAccounts();
+    if (portfolioPageOpen) renderPortfolioPage();
+    if (brokerageDiagnosticsPageOpen) renderBrokerageDiagnosticsPage();
+    void refreshPortfolioQuotes();
+  });
+});
+const addBrokerageForm = $('add-brokerage-form'); if (addBrokerageForm) addBrokerageForm.onsubmit = async event => {
+  event.preventDefault();
+  const name = $('brokerage-name').value.trim(), nickname = $('brokerage-nickname').value.trim();
+  if (!name) return;
+  settings.plaidAccounts = [...brokerageAccounts(), { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name, nickname }];
+  await window.portfolioApp.saveSettings(settings);
+  $('brokerage-name').value = ''; $('brokerage-nickname').value = '';
+  renderBrokerageAccounts();
+};
+function setupKeyVisibility(inputId, buttonId, keyName) {
+  const input = $(inputId), button = $(buttonId);
+  button.onclick = () => {
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    button.textContent = showing ? '👁' : '🙈';
+    button.setAttribute('aria-pressed', String(!showing));
+    button.setAttribute('aria-label', `${showing ? 'Show' : 'Hide'} ${keyName} API key`);
+    button.title = `${showing ? 'Show' : 'Hide'} key`;
+  };
+}
+setupKeyVisibility('api-key', 'toggle-api-key', 'Finnhub');
+setupKeyVisibility('fmp-api-key', 'toggle-fmp-api-key', 'Financial Modeling Prep');
+setupKeyVisibility('alpha-vantage-api-key', 'toggle-alpha-vantage-api-key', 'Alpha Vantage');
+setupKeyVisibility('youtube-api-key', 'toggle-youtube-api-key', 'YouTube');
+$('sort-tickers').onchange = async event => { tickerSort = event.target.value; settings.tickerSort = tickerSort; await window.portfolioApp.saveSettings(settings); render(); };
+function table(headers, rows) { return `<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${escape(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table>`; }
+function renderTrending() {
+  const collapsed = settings.trendingCollapsed === true;
+  const content = $('trending-content'), toggle = $('trending-toggle');
+  if (content) content.hidden = collapsed;
+  if (toggle) {
+    toggle.textContent = collapsed ? '+' : '−';
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+    toggle.title = collapsed ? 'Expand Trending stocks' : 'Collapse Trending stocks';
+    toggle.onclick = async () => {
+      settings.trendingCollapsed = !settings.trendingCollapsed;
+      await window.portfolioApp.saveSettings(settings);
+      renderTrending();
+    };
+  }
+  const preview = settings.trendingBadgePreview;
+  const previewSymbol = preview?.date === localDateKey() ? String(preview.symbol || '').toUpperCase() : '';
+  $('reddit-trending-list').innerHTML = trendingStocks.length ? trendingStocks.map((item, index) => { const symbol = String(item.symbol || '').toUpperCase(); const isNew = trendingNewSymbols.has(symbol) || symbol === previewSymbol; return `<article class="trending-card">${isNew ? `<span class="trending-new-badge${trendingBadgeIntroActive ? ' trending-new-badge-intro' : ''}" title="New to the trending list since the prior daily list">New!</span>` : ''}<button type="button" data-trending-stock="${index}"><strong>${escape(item.symbol)}</strong><span>${item.mentions} mentions</span><small>${escape(item.name || item.symbol)}</small></button><button type="button" class="reddit-posts-action" data-reddit-posts="${index}">Open Reddit discussion</button></article>`; }).join('') : '<p>Reddit discussion trends are temporarily unavailable.</p>';
+  if (trendingBadgeIntroActive && !trendingBadgeIntroTimer && document.querySelector('.trending-new-badge')) {
+    trendingBadgeIntroTimer = setTimeout(() => {
+      trendingBadgeIntroActive = false;
+      document.querySelectorAll('.trending-new-badge-intro').forEach(badge => badge.classList.remove('trending-new-badge-intro'));
+    }, 5000);
+  }
+  document.querySelectorAll('[data-trending-stock]').forEach(button => button.onclick = () => { const item = trendingStocks[Number(button.dataset.trendingStock)]; if (item) showSearchTicker(item.symbol, item.name || item.symbol); });
+  document.querySelectorAll('[data-reddit-posts]').forEach(button => button.onclick = () => { const item = trendingStocks[Number(button.dataset.redditPosts)]; if (item) void window.portfolioApp.openRedditSearch(item.symbol); });
+}
+async function refreshTrendingStocks() {
+  $('trending-status').textContent = 'Updating…';
+  try {
+    trendingStocks = await window.portfolioApp.trendingStocks(); trendingUpdatedAt = new Date();
+    const today = localDateKey(trendingUpdatedAt);
+    const history = settings.trendingDailySnapshots && typeof settings.trendingDailySnapshots === 'object' ? settings.trendingDailySnapshots : {};
+    const priorDate = Object.keys(history).filter(date => date < today).sort().pop();
+    const priorSymbols = new Set(Array.isArray(history[priorDate]) ? history[priorDate].map(symbol => String(symbol).toUpperCase()) : []);
+    trendingNewSymbols = priorDate ? new Set(trendingStocks.map(item => String(item.symbol || '').toUpperCase()).filter(symbol => symbol && !priorSymbols.has(symbol))) : new Set();
+    history[today] = trendingStocks.map(item => String(item.symbol || '').toUpperCase()).filter(Boolean);
+    const retainedDates = Object.keys(history).sort().slice(-31);
+    settings.trendingDailySnapshots = Object.fromEntries(retainedDates.map(date => [date, history[date]]));
+    await window.portfolioApp.saveSettings(settings);
+    renderTrending();
+    $('trending-status').textContent = `Updated ${trendingUpdatedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  } catch (error) { trendingStocks = []; renderTrending(); $('trending-status').textContent = error.message || 'Could not update Reddit trends.'; }
+}
+function renderRedditPosts() {
+  const viewer = $('reddit-posts-view');
+  if (!redditPostView) { viewer.hidden = true; document.querySelector('.snapshot').hidden = false; $('chart-panel').hidden = false; $('section-tabs').hidden = false; $('content').hidden = false; return false; }
+  viewer.hidden = false; document.querySelector('.snapshot').hidden = true; $('chart-panel').hidden = true; $('section-tabs').hidden = true; $('content').hidden = true;
+  const { symbol, name, posts, loading, error, notice } = redditPostView;
+  const body = loading ? '<p>Loading recent Reddit posts…</p>' : error ? `<p>${escape(error)}</p>` : !posts.length ? `<p>${escape(notice || 'No recent public Reddit posts were found for this ticker.')}</p><p><a href="https://www.reddit.com/search/?q=${encodeURIComponent(symbol)}" target="_blank" rel="noreferrer">Open ${escape(symbol)} on Reddit</a></p>` : `<div class="reddit-post-list">${posts.map(post => `<article><div><strong>${escape(post.subreddit)}</strong> · u/${escape(post.author)} · ${new Date(post.created * 1000).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div><a href="${escape(post.url)}" target="_blank" rel="noreferrer">${escape(post.title)}</a>${post.body ? `<p>${escape(post.body.slice(0, 700))}</p>` : ''}<small>${post.score} score · ${post.comments} comments</small></article>`).join('')}</div>`;
+  viewer.innerHTML = `<div class="reddit-posts-heading"><div><h2>Reddit discussion: ${escape(symbol)}</h2><p>Recent public posts related to ${escape(name || symbol)}.</p></div><button id="close-reddit-posts" type="button">Back to stock</button></div>${body}`;
+  $('close-reddit-posts').onclick = () => { redditPostView = null; render(); };
+  return true;
+}
+async function openRedditPosts(item) {
+  redditPostView = { symbol: item.symbol, name: item.name, posts: [], loading: true, error: '' }; render();
+  try { const result = await window.portfolioApp.redditPosts(item.symbol); redditPostView.posts = result.posts || []; redditPostView.notice = result.notice || ''; }
+  catch (error) { redditPostView.error = error.message || 'Could not load Reddit posts.'; }
+  finally { redditPostView.loading = false; render(); }
+}
+function renderNews(dossier) {
+  const items = Array.isArray(dossier.news) ? dossier.news.filter(item => !Array.isArray(item) && articleDirectlyMentionsCompany(item, dossier, ticker)) : [];
+  const percent = Math.max(0, Math.min(100, Math.round(newsLoadingProgress)));
+  const loading = newsLoading ? `<div class="news-loading-overlay" role="status"><div><i aria-hidden="true"></i><strong>Refreshing news</strong><span class="news-loading-progress-label">${percent}% complete</span><span class="news-loading-progress"><span class="news-loading-progress-fill" style="width:${percent}%"></span></span></div></div>` : '';
+  if (!items.length) return `<div class="news-refresh-wrap">${loading}<p class="earnings-empty">No recent company-specific news found. Broad market and unrelated ticker-roundup articles are excluded.</p></div>`;
+  const now = Date.now(), hotTerms = /breaking|guidance|earnings|acquisition|merger|deal|contract|investigation|lawsuit|downgrade|upgrade|offering|buyback|sec|fda/i;
+  const sorted = [...items].sort((a, b) => { const aHot = (now - (a.datetime || 0) * 1000 < 86400000 || hotTerms.test(a.headline || '')) ? 1 : 0, bHot = (now - (b.datetime || 0) * 1000 < 86400000 || hotTerms.test(b.headline || '')) ? 1 : 0; return bHot - aHot || (b.datetime || 0) - (a.datetime || 0); });
+  const visibleItems = sorted.slice(0, newsVisible), more = sorted.length > newsVisible ? '<button id="show-more-news" type="button" style="margin-top:14px">Show more</button>' : '';
+  return `<div class="news-refresh-wrap">${loading}<div class="news-list">${visibleItems.map(item => { const date = item.datetime ? new Date(item.datetime * 1000).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Recent', summary = item.summary || 'Open the original article for the full report.', analysis = item.analysis; return `<article class="news-item" style="padding:16px 0;border-bottom:1px solid #e2e2e6"><div class="news-source" style="margin-bottom:6px">${escape(item.source || 'News source')} · ${escape(date)}</div><a href="${escape(item.url)}" target="_blank" rel="noreferrer">${escape(item.headline)}</a><p style="margin:10px 0 0"><strong>Summary:</strong> ${escape(summary)}</p><p style="margin:10px 0 0"><strong>Why it matters:</strong> ${escape(analysis?.relevance || 'Generating company relevance…')}</p><p style="margin:8px 0 0"><strong>Potential impact:</strong> ${escape(analysis?.potentialImpact || 'Generating potential impact…')}</p></article>`; }).join('')}${more}</div></div>`;
+}
+function articleDirectlyMentionsCompany(item, dossier, symbol) {
+  const article = `${item?.headline || ''} ${item?.summary || ''}`.toLowerCase();
+  const company = String(dossier?.name || '').toLowerCase().replace(/\b(incorporated|corporation|company|inc|corp|ltd|plc|sa)\b/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const companyMentioned = company.length >= 4 && article.includes(company);
+  const tickerMentioned = new RegExp(`(^|[^a-z0-9])${String(symbol || '').toLowerCase()}([^a-z0-9]|$)`, 'i').test(article);
+  return companyMentioned || tickerMentioned;
+}
+function newsItemKey(item) {
+  return String(item?.id || item?.url || `${item?.headline || ''}:${item?.datetime || ''}`);
+}
+function neutralNewsAnalysis(dossier) {
+  return {
+    relevance: `The supplied article does not identify a direct company-specific connection to ${dossier?.name || 'this company'}; it is included as broader market or sector context.`,
+    potentialImpact: 'Any effect is indirect and uncertain; the article does not state a specific operational, customer, supplier, or financial impact for the company.',
+    version: NEWS_ANALYSIS_VERSION
+  };
+}
+function newsItemsNeedingAnalysis(symbol) {
+  const dossier = holdings[symbol], items = Array.isArray(dossier?.news) ? dossier.news.filter(item => !Array.isArray(item) && item.headline && articleDirectlyMentionsCompany(item, dossier, symbol) && (!item.analysis || item.analysis.version !== NEWS_ANALYSIS_VERSION)) : [];
+  // One complete pass prevents later hidden stories from triggering a second
+  // loading cycle after the visible list has already been revealed.
+  return items;
+}
+function updateNewsProgressOverlay() {
+  const percent = Math.max(0, Math.min(100, Math.round(newsLoadingProgress)));
+  const label = document.querySelector('.news-loading-progress-label');
+  const fill = document.querySelector('.news-loading-progress-fill');
+  if (label) label.textContent = `${percent}% complete`;
+  if (fill) fill.style.width = `${percent}%`;
+}
+async function updateNewsAnalysis(symbol, onProgress = null) {
+  const dossier = holdings[symbol], items = newsItemsNeedingAnalysis(symbol);
+  let completed = 0;
+  for (const item of items) {
+    const key = `${symbol}:${newsItemKey(item)}`;
+    if (newsAnalysisInProgress.has(key)) { completed += 1; onProgress?.(completed, items.length); continue; }
+    newsAnalysisInProgress.add(key);
+    try {
+      item.analysis = articleDirectlyMentionsCompany(item, dossier, symbol)
+        ? { ...await window.portfolioApp.generateNewsImpact({ companyName: dossier.name, headline: item.headline, summary: item.summary || '' }), version: NEWS_ANALYSIS_VERSION }
+        : neutralNewsAnalysis(dossier);
+      await persist();
+    } catch {
+      item.analysis = neutralNewsAnalysis(dossier);
+      await persist();
+    } finally { newsAnalysisInProgress.delete(key); completed += 1; onProgress?.(completed, items.length); }
+  }
+}
+async function finishNewsRefresh(symbol, token) {
+  const items = newsItemsNeedingAnalysis(symbol);
+  newsLoadingProgress = 20;
+  updateNewsProgressOverlay();
+  await updateNewsAnalysis(symbol, (completed, total) => { if (token === newsRefreshToken) { newsLoadingProgress = total ? 20 + ((completed / total) * 80) : 100; updateNewsProgressOverlay(); } });
+  if (token === newsRefreshToken && symbol === ticker && section === 'news') {
+    newsLoadingProgress = 100;
+    updateNewsProgressOverlay();
+    await new Promise(resolve => setTimeout(resolve, 160));
+    newsLoading = false;
+    renderContent();
+  }
+}
+function completePendingNewsAnalysis(symbol) {
+  const hasPendingAnalysis = newsItemsNeedingAnalysis(symbol).length > 0;
+  if (!hasPendingAnalysis || newsLoading || symbol !== ticker || section !== 'news') return;
+  const token = ++newsRefreshToken;
+  newsLoading = true;
+  newsLoadingProgress = 0;
+  renderContent();
+  void finishNewsRefresh(symbol, token);
+}
+function render() {
+  const noteFocus = activeNoteFocus();
+  const preserveNotesEditor = Boolean(noteFocus?.ticker === ticker && section === 'notes');
+  const chartRangeEditor = document.activeElement?.id;
+  const preserveCustomRangeEditor = chartRangeEditor === 'custom-range-start' || chartRangeEditor === 'custom-range-end';
+  // Native date controls return an empty value while the user is mid-entry.
+  // Do not recreate their DOM during a five-second quote update or that
+  // temporary value is lost before the next keystroke can complete it.
+  const preserveEditableContent = preserveNotesEditor || preserveCustomRangeEditor;
+  const pageScrollY = preserveEditableContent ? window.scrollY : null;
+  saveActiveNoteDraft();
+  // A refresh can finish after a ticker is removed. Drop any stale placeholder
+  // entries before sorting or reading their live quote fields.
+  holdings = Object.fromEntries(Object.entries(holdings || {}).filter(([, dossier]) => dossier && typeof dossier === 'object'));
+  if (!Object.keys(holdings).length) { ticker = null; renderEmpty(); return; }
+  if (!holdings[ticker]) ticker = Object.keys(holdings)[0];
+  const d = holdings[ticker];
+  if (!d) { renderEmpty(); return; }
+  const orderedHoldings = Object.entries(holdings).sort(([a, aDossier], [b, bDossier]) => { if (tickerSort === 'alpha') return a.localeCompare(b); if (tickerSort === 'earnings') { const aDate = String(aDossier?.earnings || '').match(/\d{4}-\d{2}-\d{2}/)?.[0], bDate = String(bDossier?.earnings || '').match(/\d{4}-\d{2}-\d{2}/)?.[0], aValue = aDate ? Date.parse(`${aDate}T12:00:00`) : Infinity, bValue = bDate ? Date.parse(`${bDate}T12:00:00`) : Infinity; return aValue - bValue || a.localeCompare(b); } const aChange = Number.parseFloat(aDossier?.change), bChange = Number.parseFloat(bDossier?.change), aValue = Number.isFinite(aChange) ? aChange : -Infinity, bValue = Number.isFinite(bChange) ? bChange : -Infinity; return bValue - aValue || a.localeCompare(b); });
+  holdings = Object.fromEntries(orderedHoldings);
+  $('sort-tickers').value = tickerSort;
+  $('ticker-update-status').textContent = lastQuoteRefresh ? `Quotes updated ${lastQuoteRefresh.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}` : '';
+  $('ticker-tabs').innerHTML = Object.keys(holdings).filter(key => !holdings[key]?.isSearchResult).map(key => { const change = holdings[key]?.change || '—', numeric = Number.parseFloat(change), style = Number.isFinite(numeric) ? (numeric >= 0 ? 'ticker-gain' : 'ticker-loss') : ''; return `<button class="${key === ticker ? 'active' : ''}" data-ticker="${key}" role="tab" aria-selected="${key === ticker}"><span>${key}</span><span class="ticker-change ${style}">${change}</span></button>`; }).join('');
+  const sidebarCard = key => {
+    const dossier = holdings[key];
+    const dailyMove = formatDailyMove(dossier);
+    const numeric = Number.parseFloat(dossier?.change);
+    const style = Number.isFinite(numeric) ? (numeric >= 0 ? 'ticker-gain' : 'ticker-loss') : '';
+    const extended = extendedHoursMove(dossier);
+    const extendedStyle = extended?.positive === true ? 'ticker-gain' : extended?.positive === false ? 'ticker-loss' : '';
+    const displayedPrice = String(dossier?.price || '—').replace(/^\$/, '');
+    const extendedText = extended ? extended.text.replace(/^(?:Pre|After)\s+/, '').replace(/^\$/, '') : '';
+    const sessionIcon = extended?.label === 'After-hours' ? '☾' : '☀';
+    return `<button class="ticker-card ${key === ticker ? 'active' : ''}" data-sidebar-symbol="${key}" role="tab" aria-selected="${key === ticker}" aria-label="${key}: ${displayedPrice}, ${dailyMove}">
+      <span class="ticker-card-header"><span class="ticker-card-symbol">${key}</span><span class="ticker-card-price">${escape(displayedPrice)}</span></span>
+      <span class="ticker-card-move ticker-change ${style}">${escape(dailyMove)}</span>
+      ${extended ? `<span class="ticker-card-extended ${extendedStyle}" title="${extended.label}"><i aria-hidden="true">${sessionIcon}</i><span>${escape(extendedText)}</span></span>` : ''}
+    </button>`;
+  };
+  $('ticker-tabs').innerHTML = Object.keys(holdings).filter(key => isTickerEntry(holdings[key])).map(sidebarCard).join('');
+  const sortSymbols = (symbols, sort) => [...symbols].sort((a, b) => {
+    if (sort === 'alpha') return a.localeCompare(b);
+    if (sort === 'earnings') {
+      const aDate = String(holdings[a]?.earnings || '').match(/\d{4}-\d{2}-\d{2}/)?.[0], bDate = String(holdings[b]?.earnings || '').match(/\d{4}-\d{2}-\d{2}/)?.[0];
+      const aValue = aDate ? Date.parse(`${aDate}T12:00:00`) : Infinity, bValue = bDate ? Date.parse(`${bDate}T12:00:00`) : Infinity;
+      return aValue - bValue || a.localeCompare(b);
+    }
+    const aValue = Number.parseFloat(holdings[a]?.change), bValue = Number.parseFloat(holdings[b]?.change);
+    return (Number.isFinite(bValue) ? bValue : -Infinity) - (Number.isFinite(aValue) ? aValue : -Infinity) || a.localeCompare(b);
+  });
+  const watchlistSort = settings.watchlistSort || 'change';
+  const sortedWatchlist = sortSymbols(Object.keys(holdings).filter(key => isWatchlistEntry(holdings[key])), watchlistSort);
+  $('watchlist-tabs').innerHTML = sortedWatchlist.map(sidebarCard).join('') || '<p class="watchlist-empty">No stocks in your watchlist.</p>';
+  $('sort-watchlist').value = watchlistSort;
+  $('sort-watchlist').onchange = async event => { settings.watchlistSort = event.target.value; await window.portfolioApp.saveSettings(settings); render(); };
+  // Watchlist is the always-visible quick-reference list. Custom lists below
+  // it remain collapsed by default to keep the rail compact.
+  const watchlistCollapsed = false;
+  $('watchlist-toggle').setAttribute('aria-expanded', String(!watchlistCollapsed));
+  $('watchlist-toggle').classList.toggle('collapsed', watchlistCollapsed);
+  $('watchlist-tabs').hidden = watchlistCollapsed;
+  document.querySelector('.watchlist-sort-row').hidden = watchlistCollapsed;
+  $('watchlist-toggle').onclick = () => {};
+  $('custom-lists').innerHTML = customLists().map(list => {
+    const collapsed = Boolean(list.collapsed), symbols = sortSymbols(Object.keys(holdings).filter(key => isCustomListEntry(holdings[key], list.id)), list.sort || 'change');
+    return `<section class="custom-list" data-custom-list="${escape(list.id)}"><div class="custom-list-header"><button class="custom-list-toggle ${collapsed ? 'collapsed' : ''}" type="button" data-custom-list-toggle="${escape(list.id)}" aria-expanded="${!collapsed}"><span>${escape(list.name)}</span><i aria-hidden="true">⌄</i></button><div class="custom-list-actions"><select data-custom-list-sort="${escape(list.id)}" aria-label="Sort ${escape(list.name)}"><option value="change" ${(list.sort || 'change') === 'change' ? 'selected' : ''}>Daily %</option><option value="alpha" ${list.sort === 'alpha' ? 'selected' : ''}>A–Z</option><option value="earnings" ${list.sort === 'earnings' ? 'selected' : ''}>Earnings</option></select><button type="button" class="custom-list-delete" data-custom-list-delete="${escape(list.id)}" title="Delete ${escape(list.name)}" aria-label="Delete ${escape(list.name)}">×</button></div></div><div class="custom-list-content ticker-list" ${collapsed ? 'hidden' : ''}>${symbols.map(sidebarCard).join('') || '<p class="watchlist-empty">No stocks in this list.</p>'}</div></section>`;
+  }).join('') || '<p class="watchlist-empty custom-lists-empty">Create a list to organize stocks.</p>';
+  // Use the same vector chevron as Watchlist so custom-list controls are
+  // equally visible at every display scale.
+  document.querySelectorAll('.custom-list-toggle i').forEach(icon => {
+    icon.outerHTML = '<svg aria-hidden="true" viewBox="0 0 16 16" focusable="false"><path d="m4 6 4 4 4-4"/></svg>';
+  });
+  document.querySelectorAll('.custom-list-delete').forEach(button => {
+    button.innerHTML = '<svg aria-hidden="true" viewBox="0 0 16 16" focusable="false"><path d="M3.5 4.5h9M6 4.5V3.2h4v1.3m-5.3 0 .55 8.1h5.5l.55-8.1M7 6.7v3.7m2-3.7v3.7"/></svg>';
+  });
+  document.querySelectorAll('[data-custom-list-toggle]').forEach(button => button.onclick = async () => {
+    const list = customLists().find(item => item.id === button.dataset.customListToggle); if (!list) return;
+    list.collapsed = !list.collapsed; await window.portfolioApp.saveSettings(settings); render();
+  });
+  document.querySelectorAll('[data-custom-list-sort]').forEach(select => select.onchange = async event => {
+    const list = customLists().find(item => item.id === event.target.dataset.customListSort); if (!list) return;
+    list.sort = event.target.value; await window.portfolioApp.saveSettings(settings); render();
+  });
+  document.querySelectorAll('[data-custom-list-delete]').forEach(button => button.onclick = async () => {
+    const list = customLists().find(item => item.id === button.dataset.customListDelete); if (!list || !window.confirm(`Delete the list “${list.name}”? Stocks will remain in your other lists.`)) return;
+    settings.customLists = customLists().filter(item => item.id !== list.id);
+    Object.values(holdings).forEach(dossier => { if (Array.isArray(dossier.customLists)) dossier.customLists = dossier.customLists.filter(id => id !== list.id); });
+    await Promise.all([persist(), window.portfolioApp.saveSettings(settings)]); render();
+  });
+  document.querySelectorAll('[data-ticker]').forEach(button => {
+    const dossier = holdings[button.dataset.ticker], change = button.querySelector('.ticker-change');
+    const percent = Number.parseFloat(dossier?.change);
+    if (!change) return;
+    change.textContent = formatDailyMove(dossier);
+    change.classList.toggle('ticker-gain', Number.isFinite(percent) && percent >= 0);
+    change.classList.toggle('ticker-loss', Number.isFinite(percent) && percent < 0);
+  });
+  document.querySelectorAll('[data-ticker]').forEach(button => button.onclick = () => { ticker = button.dataset.ticker; redditPostView = null; chartView = null; earningsVisible = 4; newsVisible = 5; render(); void refreshMarketData(); });
+  document.querySelectorAll('[data-sidebar-symbol]').forEach(button => {
+    const dossier = holdings[button.dataset.sidebarSymbol], change = button.querySelector('.ticker-change'), percent = Number.parseFloat(dossier?.change);
+    if (change) { change.textContent = formatDailyMove(dossier); change.classList.toggle('ticker-gain', Number.isFinite(percent) && percent >= 0); change.classList.toggle('ticker-loss', Number.isFinite(percent) && percent < 0); }
+    button.onclick = () => { ticker = button.dataset.sidebarSymbol; redditPostView = null; chartView = null; earningsVisible = 4; newsVisible = 5; render(); void refreshMarketData(); };
+  });
+  if (renderRedditPosts()) return;
+  $('title').textContent = `${ticker} — ${d.name}`; $('story').textContent = d.story; $('overview-loading').hidden = !overviewInProgress.has(ticker);
+  const inferredTiming = d.earningsTime || (String(d.earnings || '').match(/\((bmo|amc)\)/i)?.[1]?.toLowerCase());
+  const publishedValue = d.publishedValuation;
+  const fairValue = Number.isFinite(publishedValue?.valuePerShare) ? `$${publishedValue.valuePerShare.toFixed(2)}` : 'Unavailable';
+  const fairValueTitle = publishedValue ? `${publishedValue.label || 'Published fair value'} from ${publishedValue.source}. Retrieved ${new Date(publishedValue.retrievedAt).toLocaleDateString()}.` : 'No published fair-value estimate is currently available from Alpha Spread, Morningstar, Simply Wall St, or Finbox for this ticker.';
+  // Keep older saved research files from rendering their retired DCF scenarios.
+  d.dcf = publishedValue ? {} : null;
+  const dcfValue = fairValue;
+  const dcfTitle = fairValueTitle;
+  const dcfScenarios = d.dcf?.scenarios ? `<small class="dcf-scenarios">Bear $${d.dcf.scenarios.find(item => item.name === 'bear').valuePerShare.toFixed(2)} · Base $${d.dcf.scenarios.find(item => item.name === 'base').valuePerShare.toFixed(2)} · Bull $${d.dcf.scenarios.find(item => item.name === 'bull').valuePerShare.toFixed(2)}</small>` : '';
+  const activeExtendedMove = extendedHoursMove(d);
+  const ibkrLiveDetail = d.liveMarketSource === 'IBKR' && d.liveMarketQuote ? `Bid ${d.liveMarketQuote.bid ? `$${Number(d.liveMarketQuote.bid).toFixed(2)}` : '—'} · Ask ${d.liveMarketQuote.ask ? `$${Number(d.liveMarketQuote.ask).toFixed(2)}` : '—'} · Vol ${Number.isFinite(d.liveMarketQuote.volume) ? Number(d.liveMarketQuote.volume).toLocaleString() : '—'}` : null;
+  $('metrics').innerHTML = [['Current price', d.price], ['Today', d.change || '—'], ['Next earnings', d.earnings], ...(ibkrLiveDetail ? [['Live feed', ibkrLiveDetail, 'Live bid, ask, and daily volume from your authenticated Interactive Brokers session.']] : []), ['Market cap', marketCap(d.marketCap), 'Market capitalization from the company profile.'], ['DCF value / share', dcfValue, dcfTitle]].map(m => `<div${m[0] === 'DCF value / share' ? ' class="dcf-metric"' : ''}><dt${m[2] ? ` title="${escape(m[2])}"` : ''}>${m[0]}</dt><dd${m[0] === 'DCF value / share' && !d.dcf ? ` class="dcf-unavailable" title="${escape(dcfTitle)}"` : ''}>${m[0] === 'Next earnings' && inferredTiming ? `<span class="earnings-time" title="${earningsTimingHelp(inferredTiming)}">${escape(m[1])}</span>` : escape(m[1])}</dd>${m[0] === 'Today' && activeExtendedMove ? `<small class="extended-hours-prices ${activeExtendedMove.positive === true ? 'ticker-gain' : activeExtendedMove.positive === false ? 'ticker-loss' : ''}">${escape(activeExtendedMove.label)} ${escape(activeExtendedMove.text.replace(/^(Pre|After)\s/, ''))}</small>` : ''}${m[0] === 'DCF value / share' ? dcfScenarios : ''}</div>`).join('');
+  const valuationMetric = [...$('metrics').children].find(item => item.querySelector('dt')?.textContent === 'DCF value / share');
+  if (valuationMetric) {
+    valuationMetric.querySelector('dt').textContent = 'Published fair value / share';
+    if (publishedValue?.url) valuationMetric.insertAdjacentHTML('beforeend', `<small class="dcf-scenarios"><a href="${escape(publishedValue.url)}" target="_blank" rel="noreferrer">View ${escape(publishedValue.source)} source</a></small>`);
+  }
+  const todayValue = document.querySelector('#metrics > div:nth-child(2) dd');
+  const dailyPercent = Number.parseFloat(d.change);
+  if (todayValue) {
+    todayValue.textContent = formatDailyMove(d);
+    todayValue.classList.toggle('ticker-gain', Number.isFinite(dailyPercent) && dailyPercent >= 0);
+    todayValue.classList.toggle('ticker-loss', Number.isFinite(dailyPercent) && dailyPercent < 0);
+  }
+  $('add-ticker').disabled = !d;
+  $('delete-ticker').disabled = Boolean(d.isSearchResult);
+  document.querySelectorAll('[data-section]').forEach(button => { button.classList.toggle('active', button.dataset.section === section); button.onclick = () => { sectionScrollPositions[section] = window.scrollY; section = button.dataset.section; document.querySelectorAll('[data-section]').forEach(tab => tab.classList.toggle('active', tab.dataset.section === section)); const dossier = holdings[ticker]; if (section === 'news' && settings.finnhubToken && !dossier.newsLoadedAt) { newsLoading = true; newsLoadingProgress = 0; renderContent(); void refreshMarketData(); } else renderContent(); requestAnimationFrame(() => window.scrollTo({ top: sectionScrollPositions[section] ?? window.scrollY, behavior: 'auto' })); }; });
+  // Quote refreshes occur every five seconds. Do not replace the notes DOM while
+  // someone is writing: replacing a textarea resets its own scrollbar and can
+  // shift the page even if focus and text are restored afterwards.
+  if (!preserveEditableContent) renderContent();
+  if (noteFocus?.ticker === ticker && section === 'notes') {
+    requestAnimationFrame(() => {
+      const input = noteFocus.editor === 'edit' ? document.querySelector(`[data-note-editor][data-note-index="${noteFocus.noteIndex}"]`) : $('new-note');
+      if (!input || input.dataset.ticker !== noteFocus.ticker) return;
+      input.focus({ preventScroll: true });
+      input.setSelectionRange(noteFocus.start, noteFocus.end, noteFocus.direction || 'none');
+    });
+  }
+  if (pageScrollY !== null) requestAnimationFrame(() => window.scrollTo({ top: pageScrollY, behavior: 'auto' }));
+  // A live quote refresh must not rebuild the SVG while the notes editor is
+  // active. Rebuilding it was the visible "graph refresh" caused by editing.
+  if (!preserveEditableContent) renderChart();
+  void updateOverview(ticker);
+  if (d.aiOverview) void updateThesis(ticker);
+}
+function renderEmpty() { $('ticker-tabs').innerHTML = ''; $('title').textContent = 'No tickers yet'; $('story').textContent = 'Search for a ticker to start a new research dossier.'; $('metrics').innerHTML = ''; $('content').innerHTML = ''; $('price-chart').innerHTML = '<text class="chart-empty" x="400" y="130" text-anchor="middle">Search for a ticker to see its historical price.</text>'; $('chart-summary').textContent = ''; $('add-ticker').disabled = true; $('delete-ticker').disabled = true; }
+async function updateOverview(symbol) {
+  const dossier = holdings[symbol];
+  if (!dossier || !needsCompanyOverview(dossier) || overviewInProgress.has(symbol)) return;
+  const source = dossier.profileOverview || dossier.story;
+  if (!source || /overview loading|please provide me with the company story|start with the company story/i.test(source) || dossier.overviewGeneratedFrom === source) return;
+  overviewInProgress.add(symbol);
+  if (symbol === ticker) $('overview-loading').hidden = false;
+  if (symbol === ticker) $('message').textContent = 'Updating local overview…';
+  try {
+    const overview = await window.portfolioApp.generateOverview({ companyName: dossier.name, sourceText: source });
+    if (!holdings[symbol]) return;
+    dossier.story = overview;
+    dossier.aiOverview = true;
+    dossier.overviewGeneratedFrom = source;
+    await persist();
+    if (symbol === ticker) {
+      $('message').textContent = 'Overview updated.';
+      render();
+    }
+  } catch (error) {
+    if (symbol === ticker) $('message').textContent = error.message || 'Could not update the local overview.';
+  } finally {
+    if (symbol === ticker) $('overview-loading').hidden = true;
+    overviewInProgress.delete(symbol);
+  }
+}
+async function updateThesis(symbol, force = false) {
+  const dossier = holdings[symbol];
+  if (!dossier || thesisInProgress.has(symbol) || !dossier.aiOverview) return;
+  const source = dossier.story;
+  if (!source || /overview loading|please provide me with the company story|start with the company story/i.test(source)) return;
+  const noteText = (dossier.notes || []).map(note => `${note?.[0] || 'Undated'}: ${note?.[1] || ''}`.trim()).filter(Boolean).join('\n');
+  const thesisSignature = JSON.stringify({ source, noteText });
+  if (!force && dossier.thesisGenerated && dossier.thesisGeneratedFrom === thesisSignature) return;
+  thesisInProgress.add(symbol);
+  if (symbol === ticker) $('message').textContent = 'Generating local thesis…';
+  let needsRerun = false;
+  try {
+    const thesis = await window.portfolioApp.generateThesis({ companyName: dossier.name, sourceText: source, notesText: noteText });
+    if (!holdings[symbol]) return;
+    const currentNotes = (holdings[symbol].notes || []).map(note => `${note?.[0] || 'Undated'}: ${note?.[1] || ''}`.trim()).filter(Boolean).join('\n');
+    if (JSON.stringify({ source: holdings[symbol].story, noteText: currentNotes }) !== thesisSignature) { needsRerun = true; return; }
+    dossier.thesis = thesis;
+    dossier.thesisGenerated = true;
+    dossier.thesisGeneratedFrom = thesisSignature;
+    await persist();
+    if (symbol === ticker) { $('message').textContent = 'Thesis and risks generated.'; render(); }
+  } catch (error) {
+    if (symbol === ticker) { $('message').textContent = error.message || 'Could not generate the local thesis.'; renderContent(); }
+  } finally {
+    thesisInProgress.delete(symbol);
+    if (needsRerun) void updateThesis(symbol);
+  }
+}
+const financialStatements = {
+  income: { title: 'Income statement', chart: [['TotalRevenue', 'Revenue'], ['NetIncomeCommonStockholders', 'Net income']], fields: [['TotalRevenue', 'Total revenue'], ['CostOfRevenue', 'Cost of revenue'], ['GrossProfit', 'Gross profit'], ['OperatingExpense', 'Operating expense'], ['OperatingIncome', 'Operating income'], ['PretaxIncome', 'Pretax income'], ['TaxProvision', 'Tax provision'], ['NetIncomeCommonStockholders', 'Net income'], ['DilutedEPS', 'Diluted EPS'], ['BasicEPS', 'Basic EPS']] },
+  balance: { title: 'Balance sheet', chart: [['TotalAssets', 'Total assets'], ['TotalLiabilitiesNetMinorityInterest', 'Total liabilities'], ['StockholdersEquity', 'Stockholders\' equity']], fields: [['CashCashEquivalentsAndShortTermInvestments', 'Cash & short-term investments'], ['AccountsReceivable', 'Accounts receivable'], ['Inventory', 'Inventory'], ['CurrentAssets', 'Current assets'], ['TotalAssets', 'Total assets'], ['CurrentLiabilities', 'Current liabilities'], ['TotalLiabilitiesNetMinorityInterest', 'Total liabilities'], ['StockholdersEquity', 'Stockholders\' equity'], ['TotalDebt', 'Total debt'], ['NetDebt', 'Net debt']] },
+  cashflow: { title: 'Cash flow', chart: [['OperatingCashFlow', 'Operating cash flow'], ['CapitalExpenditure', 'Capital expenditures'], ['FreeCashFlow', 'Free cash flow']], fields: [['OperatingCashFlow', 'Operating cash flow'], ['InvestingCashFlow', 'Investing cash flow'], ['FinancingCashFlow', 'Financing cash flow'], ['CapitalExpenditure', 'Capital expenditures'], ['FreeCashFlow', 'Free cash flow']] }
+};
+const formatFinancialValue = (value, metric) => {
+  if (!Number.isFinite(value)) return '—';
+  if (/EPS$/.test(metric)) return `$${value.toFixed(2)}`;
+  const absolute = Math.abs(value), unit = absolute >= 1e9 ? 'B' : absolute >= 1e6 ? 'M' : absolute >= 1e3 ? 'K' : '';
+  const divisor = unit === 'B' ? 1e9 : unit === 'M' ? 1e6 : unit === 'K' ? 1e3 : 1;
+  return `${value < 0 ? '-' : ''}$${(absolute / divisor).toFixed(2)}${unit}`;
+};
+function renderFinancials(dossier) {
+  const rows = Array.isArray(financialsPeriod === 'annual' ? dossier.financials : dossier.quarterlyFinancials) ? (financialsPeriod === 'annual' ? dossier.financials : dossier.quarterlyFinancials) : [];
+  const periodLabel = financialsPeriod === 'annual' ? 'Annual' : 'Quarterly';
+  const periodDate = date => financialsPeriod === 'annual' ? date.slice(0, 4) : new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+  const statement = financialStatements[financialsView];
+  const financialSource = financialsPeriod === 'quarterly' ? (dossier.quarterlyFinancialsSource || 'Yahoo Finance') : 'Yahoo Finance';
+  const controls = `<div class="financial-controls"><div class="financial-tabs" role="tablist" aria-label="Financial period"><button data-financials-period="annual" class="${financialsPeriod === 'annual' ? 'active' : ''}">Annual</button><button data-financials-period="quarterly" class="${financialsPeriod === 'quarterly' ? 'active' : ''}">Quarterly</button></div><div class="financial-tabs" role="tablist" aria-label="Financial statement"><button data-financials-view="income" class="${financialsView === 'income' ? 'active' : ''}">Income statement</button><button data-financials-view="balance" class="${financialsView === 'balance' ? 'active' : ''}">Balance sheet</button><button data-financials-view="cashflow" class="${financialsView === 'cashflow' ? 'active' : ''}">Cash flow</button></div></div>`;
+  const heading = `<div class="financials-heading"><div><h3>${statement.title}</h3><p>${periodLabel} figures from ${escape(financialSource)}.</p></div>${controls}</div>`;
+  if (!rows.length) return `${heading}<div class="empty-state"><h3>No ${periodLabel.toLowerCase()} financials available</h3><p>${financialsPeriod === 'quarterly' ? 'The available data sources did not return quarterly statements for this ticker. You can switch back to Annual or choose another statement above.' : 'The available data sources did not return annual statements for this ticker.'}</p><span class="data-source">Source: ${escape(financialSource)}</span></div>`;
+  const periods = [...rows].sort((a, b) => a.date.localeCompare(b.date)), chartRows = periods.filter(row => statement.chart.some(([metric]) => Number.isFinite(row[financialsView]?.[metric])));
+  const values = chartRows.flatMap(row => statement.chart.map(([metric]) => row[financialsView]?.[metric]).filter(Number.isFinite));
+  const minimum = Math.min(0, ...values), rawMaximum = Math.max(0, ...values), padding = Math.max((rawMaximum - minimum) * .12, Math.abs(rawMaximum || minimum) * .08, 1), maximum = rawMaximum + padding, lower = minimum < 0 ? minimum - padding : 0;
+  const top = 32, bottom = 244, left = 78, right = 770, height = bottom - top, scaleY = value => bottom - ((value - lower) / (maximum - lower || 1)) * height;
+  const ticks = Array.from({ length: 5 }, (_, index) => lower + ((maximum - lower) * index / 4));
+  const groupWidth = (right - left) / Math.max(chartRows.length, 1), barWidth = Math.min(28, (groupWidth - 18) / statement.chart.length), zero = scaleY(0);
+  const grid = ticks.map(value => `<line class="financial-grid" x1="${left}" x2="${right}" y1="${scaleY(value)}" y2="${scaleY(value)}"/><text class="financial-label" x="${left - 10}" y="${scaleY(value) + 4}" text-anchor="end">${formatFinancialValue(value, 'Amount')}</text>`).join('');
+  const bars = chartRows.map((row, index) => statement.chart.map(([metric, label], series) => { const value = row[financialsView]?.[metric]; if (!Number.isFinite(value)) return ''; const x = left + index * groupWidth + (groupWidth - statement.chart.length * barWidth) / 2 + series * barWidth, y = Math.min(scaleY(value), zero), barHeight = Math.max(1, Math.abs(scaleY(value) - zero)), tooltip = `${periodDate(row.date)} — ${label}: ${formatFinancialValue(value, metric)}`; return `<rect class="financial-bar financial-bar-${series}" data-financials-tooltip="${escape(tooltip)}" x="${x}" y="${y}" width="${Math.max(2, barWidth - 4)}" height="${barHeight}"><title>${escape(tooltip)}</title></rect>`; }).join('') + `<text class="financial-label" x="${left + index * groupWidth + groupWidth / 2}" y="${bottom + 24}" text-anchor="middle">${periodDate(row.date)}</text>`).join('');
+  const legend = statement.chart.map(([, label], index) => `<span><i class="financial-swatch financial-bar-${index}"></i>${label}</span>`).join('');
+  const tableRows = statement.fields.map(([metric, label]) => `<tr><th scope="row">${label}</th>${[...rows].sort((a, b) => b.date.localeCompare(a.date)).map(row => `<td>${formatFinancialValue(row[financialsView]?.[metric], metric)}</td>`).join('')}</tr>`).join('');
+  const headers = [...rows].sort((a, b) => b.date.localeCompare(a.date)).map(row => `<th>${periodDate(row.date)}</th>`).join('');
+  return `${heading}<div class="financial-legend">${legend}</div><div class="financial-chart-wrap"><svg class="financial-chart" viewBox="0 0 800 285" role="img" aria-label="${statement.title} ${financialsPeriod} bar chart"><title>${statement.title} ${financialsPeriod} bar chart</title>${grid}<line class="financial-axis" x1="${left}" x2="${right}" y1="${zero}" y2="${zero}"/>${bars}</svg><div id="financials-tooltip" role="status" hidden></div></div><div class="financials-table-wrap"><table class="financials-table"><thead><tr><th>${periodLabel} period</th>${headers}</tr></thead><tbody>${tableRows}</tbody></table></div>`;
+}
+function modeledShortInterestHistory(shortInterest) {
+  const cutoff = Date.now() - 100 * 86400000;
+  const reports = (shortInterest.history || [])
+    .filter(row => row.asOf && Number.isFinite(row.sharesShort) && Number.isFinite(row.percentOfFloat) && row.percentOfFloat > 0)
+    .sort((a, b) => a.asOf.localeCompare(b.asOf));
+  if (reports.length < 2) return { rows: [], reports, hasDailyFlow: false };
+  const firstReportAt = Date.parse(`${reports[0].asOf}T12:00:00`);
+  const start = new Date(Math.max(cutoff, firstReportAt));
+  start.setHours(12, 0, 0, 0);
+  // Official short-interest positions are delayed.  The daily modeled series
+  // must therefore stop at the last completed U.S. trading day, matching the
+  // timing convention used by estimate displays rather than presenting a
+  // partial intraday value as today's short interest.
+  const end = new Date();
+  end.setDate(end.getDate() - 1);
+  end.setHours(23, 59, 59, 999);
+  const dailyFlowByDate = new Map((shortInterest.dailyShortVolume || [])
+    .filter(row => row?.date && Number.isFinite(Number(row.shortVolume)) && Number.isFinite(Number(row.totalVolume)) && Number(row.totalVolume) > 0)
+    .map(row => [row.date, { shortRatio: (Number(row.shortVolume) + Math.max(0, Number(row.shortExemptVolume) || 0)) / Number(row.totalVolume) }]));
+  const allRatios = [...dailyFlowByDate.values()].map(row => row.shortRatio);
+  const typicalShortRatio = allRatios.length ? allRatios.reduce((sum, value) => sum + value, 0) / allRatios.length : null;
+  const reportFloat = row => row.sharesShort / row.percentOfFloat;
+  const reportIndexForDate = date => reports.findIndex(row => row.asOf === date);
+  const officialDailyRates = reports.slice(1).map((row, index) => {
+    const previous = reports[index], days = Math.max(1, Math.round((Date.parse(`${row.asOf}T12:00:00`) - Date.parse(`${previous.asOf}T12:00:00`)) / 86400000));
+    return Math.max(-0.015, Math.min(0.015, (row.sharesShort / previous.sharesShort - 1) / days));
+  }).filter(Number.isFinite);
+  const learnedDailyRate = officialDailyRates.length ? officialDailyRates.reduce((sum, value) => sum + value, 0) / officialDailyRates.length : 0;
+  const history = [];
+  for (const day = new Date(start); day <= end; day.setDate(day.getDate() + 1)) {
+    if (day.getDay() === 0 || day.getDay() === 6) continue;
+    const date = day.toISOString().slice(0, 10);
+    const officialIndex = reportIndexForDate(date);
+    const priorIndex = reports.reduce((found, row, index) => row.asOf <= date ? index : found, -1);
+    if (priorIndex < 0) continue;
+    const prior = reports[priorIndex], next = reports[priorIndex + 1] || null;
+    const flow = dailyFlowByDate.get(date)?.shortRatio;
+    let shares = prior.sharesShort, floatShares = reportFloat(prior), estimated = false, modelType = 'official';
+    if (officialIndex >= 0) {
+      shares = reports[officialIndex].sharesShort;
+      floatShares = reportFloat(reports[officialIndex]);
+    } else if (next) {
+      // Historical estimates are constrained by two known FINRA reports. The
+      // daily flow signal adds shape but resolves to the official endpoint.
+      const periodDays = Math.max(1, Math.round((Date.parse(`${next.asOf}T12:00:00`) - Date.parse(`${prior.asOf}T12:00:00`)) / 86400000));
+      const elapsed = Math.max(0, Math.round((Date.parse(`${date}T12:00:00`) - Date.parse(`${prior.asOf}T12:00:00`)) / 86400000));
+      const progress = Math.min(1, elapsed / periodDays);
+      const periodDates = Array.from({ length: periodDays }, (_, index) => new Date(Date.parse(`${prior.asOf}T12:00:00`) + (index + 1) * 86400000).toISOString().slice(0, 10));
+      const deviations = periodDates.map(periodDate => (dailyFlowByDate.get(periodDate)?.shortRatio ?? typicalShortRatio ?? 0) - (typicalShortRatio ?? 0));
+      const cumulative = deviations.slice(0, Math.min(elapsed, deviations.length)).reduce((sum, value) => sum + value, 0);
+      const total = deviations.reduce((sum, value) => sum + value, 0);
+      const centeredFlow = cumulative - total * progress;
+      const normalization = deviations.reduce((sum, value) => sum + Math.abs(value), 0) || 1;
+      const base = prior.sharesShort + (next.sharesShort - prior.sharesShort) * progress;
+      const overlay = Math.max(-0.025 * prior.sharesShort, Math.min(0.025 * prior.sharesShort, centeredFlow / normalization * Math.abs(next.sharesShort - prior.sharesShort || prior.sharesShort * .04)));
+      shares = Math.max(0, base + overlay);
+      floatShares = reportFloat(prior) + (reportFloat(next) - reportFloat(prior)) * progress;
+      estimated = true;
+      modelType = 'calibrated';
+    } else {
+      // The open interval cannot be validated until FINRA publishes its next
+      // settlement report. Apply only a deliberately capped daily adjustment.
+      const daysSinceReport = Math.max(0, Math.round((Date.parse(`${date}T12:00:00`) - Date.parse(`${prior.asOf}T12:00:00`)) / 86400000));
+      const flowAdjustment = Number.isFinite(flow) && Number.isFinite(typicalShortRatio) ? Math.max(-0.003, Math.min(0.003, (flow - typicalShortRatio) * .04)) : 0;
+      const dailyRate = Math.max(-0.01, Math.min(0.01, learnedDailyRate + flowAdjustment));
+      shares = Math.max(0, prior.sharesShort * Math.pow(1 + dailyRate, daysSinceReport));
+      estimated = true;
+      modelType = allRatios.length ? 'provisional-model' : 'carry-forward';
+    }
+    history.push({ date, asOf: prior.asOf, sharesShort: shares, percentOfFloat: floatShares > 0 ? shares / floatShares : prior.percentOfFloat, estimated, modelType, hasDailyFlow: Number.isFinite(flow) });
+  }
+  return { rows: history, reports, hasDailyFlow: allRatios.length >= 5 };
+}
+function renderShortInterestChart(shortInterest) {
+  const { rows: history, reports, hasDailyFlow } = modeledShortInterestHistory(shortInterest);
+  if (reports.length < 2) return '<p class="earnings-empty">Historical short-float percentages are unavailable for this ticker. The chart will appear when the data provider supplies at least two reported values.</p>';
+  if (history.length < 2) return '<p class="earnings-empty">Three months of short-interest history is not available for this ticker yet.</p>';
+  const width = 1000, height = 500, left = 90, right = 900, top = 36, bottom = 406;
+  const shortMax = Math.max(...history.map(row => row.sharesShort)) * 1.15;
+  const floatMinData = Math.min(...history.map(row => row.percentOfFloat)), floatMaxData = Math.max(...history.map(row => row.percentOfFloat));
+  const floatPad = Math.max(.002, (floatMaxData - floatMinData) * .18), floatMin = Math.max(0, floatMinData - floatPad), floatMax = floatMaxData + floatPad;
+  const yShort = value => bottom - value / (shortMax || 1) * (bottom - top), yFloat = value => bottom - (value - floatMin) / (floatMax - floatMin || 1) * (bottom - top);
+  const x = index => left + (right - left) * (index + .5) / history.length;
+  const shares = value => new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+  const grid = Array.from({ length: 5 }, (_, index) => { const value = shortMax * index / 4, float = floatMin + (floatMax - floatMin) * index / 4, y = yShort(value); return `<line class="short-interest-grid" x1="${left}" x2="${right}" y1="${y}" y2="${y}"/><text class="short-interest-label" x="${left - 9}" y="${y + 4}" text-anchor="end">${shares(value)}</text><text class="short-interest-label" x="${right + 9}" y="${y + 4}">${(float * 100).toFixed(1)}%</text>`; }).join('');
+  const barWidth = Math.min(38, (right - left) / history.length * .54);
+  const bars = history.map((row, index) => { const barY = yShort(row.sharesShort); const kind = row.modelType === 'official' ? `Official FINRA report (${row.asOf})` : row.modelType === 'calibrated' ? `Historically calibrated estimate between ${row.asOf} and the next official report` : row.modelType === 'provisional-model' ? `Provisional FINRA-flow estimate after official ${row.asOf}` : `Carry-forward estimate from official ${row.asOf}`; const label = `${row.date} — ${kind}: ${shares(row.sharesShort)}; Short float: ${(row.percentOfFloat * 100).toFixed(2)}%`; return `<rect class="short-interest-bar${row.modelType === 'provisional-model' || row.modelType === 'carry-forward' ? ' short-interest-estimate-bar' : ''}" data-short-interest-index="${index}" x="${x(index) - barWidth / 2}" y="${barY}" width="${barWidth}" height="${bottom - barY}" role="button" tabindex="0" aria-label="${escape(label)}"></rect>`; }).join('');
+  const line = history.map((row, index) => `${index ? 'L' : 'M'} ${x(index)} ${yFloat(row.percentOfFloat)}`).join(' ');
+  const points = history.map((row, index) => `<circle class="short-float-point" cx="${x(index)}" cy="${yFloat(row.percentOfFloat)}" r="3"><title>${escape(`${row.date} — Short float: ${(row.percentOfFloat * 100).toFixed(2)}%`)}</title></circle>`).join('');
+  const labelIndexes = [...new Set([0, Math.floor((history.length - 1) / 2), history.length - 1])];
+  const dates = labelIndexes.map(index => `<text class="short-interest-label" x="${x(index)}" y="${bottom + 26}" text-anchor="middle">${escape(new Date(`${history[index].date}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</text>`).join('');
+  const note = hasDailyFlow
+    ? 'Green history is reconstructed from official FINRA settlement reports and daily FINRA short-sale-volume flow. Gold bars are the current, unvalidated model estimate after the latest official report. FINRA daily short volume is not a net short-position measure; estimates are not used in the squeeze score.'
+    : 'Daily FINRA short-sale-volume data was unavailable, so gold bars carry forward the latest official report. They are not used in the squeeze score.';
+  return `<div class="short-interest-chart-wrap"><div class="short-interest-legend"><span><i class="short-interest-swatch"></i>Official / calibrated history</span><span><i class="short-interest-estimate-swatch"></i>Current modeled estimate</span><span><i class="short-float-swatch"></i>Short float</span></div><p class="short-interest-estimate-note">${note}</p><svg class="short-interest-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Three-month short-interest history: bars show shares short and line shows short float percentage"><title>Three-month short-interest history</title>${grid}<line class="short-interest-axis" x1="${left}" x2="${right}" y1="${bottom}" y2="${bottom}"/>${bars}<path class="short-float-line" d="${line}"/>${points}${dates}</svg></div>`;
+}
+function renderAnalystTargetScatter(targets, price) {
+  const barclaysTarget = targets?.barclaysTarget;
+  const points = [['Low', targets?.low], ['Median', targets?.median], ['Mean', targets?.mean], ['High', targets?.high], ['Barclays', barclaysTarget]].filter(([, value]) => Number.isFinite(value) && value > 0);
+  if (!points.length) return '<p class="ratings-note analyst-target-empty">Published analyst price-target data is unavailable for this ticker.</p>';
+  const currentPrice = Number(price);
+  const values = points.map(([, value]) => value).concat(Number.isFinite(currentPrice) && currentPrice > 0 ? [currentPrice] : []);
+  const rawMin = Math.min(...values), rawMax = Math.max(...values), padding = Math.max(1, (rawMax - rawMin || rawMax * .1) * .13);
+  const minimum = Math.max(0, rawMin - padding), maximum = rawMax + padding;
+  const width = 760, height = 210, left = 92, right = 715, top = 24, bottom = 157;
+  const x = value => left + (value - minimum) / (maximum - minimum || 1) * (right - left);
+  const ticks = Array.from({ length: 5 }, (_, index) => minimum + (maximum - minimum) * index / 4);
+  const grid = ticks.map(value => `<line class="analyst-target-grid" x1="${x(value)}" x2="${x(value)}" y1="${top}" y2="${bottom}"/><text class="analyst-target-axis-label" x="${x(value)}" y="${bottom + 30}" text-anchor="middle">$${value.toFixed(0)}</text>`).join('');
+  const yFor = index => top + 22 + index * ((bottom - top - 44) / Math.max(points.length - 1, 1));
+  const pointMarks = points.map(([label, value], index) => { const tooltip = `${label} analyst price target: $${value.toFixed(2)}`, color = label.toLowerCase(); return `<text class="analyst-target-label" x="${left - 12}" y="${yFor(index) + 4}" text-anchor="end">${label}</text><circle class="analyst-target-point analyst-target-${color}" cx="${x(value)}" cy="${yFor(index)}" r="7"><title>${escape(tooltip)}</title></circle><text class="analyst-target-value" x="${x(value) + 12}" y="${yFor(index) + 4}">$${value.toFixed(2)}</text>`; }).join('');
+  const priceMarker = Number.isFinite(currentPrice) && currentPrice > 0 ? `<line class="analyst-current-price" x1="${x(currentPrice)}" x2="${x(currentPrice)}" y1="${top}" y2="${bottom}"/><text class="analyst-current-price-label" x="${x(currentPrice)}" y="${top - 7}" text-anchor="middle">Current $${currentPrice.toFixed(2)}</text>` : '';
+  const updated = targets?.updated ? ` Updated ${escape(targets.updated)}.` : '';
+  const barclaysNote = Number.isFinite(barclaysTarget) && barclaysTarget > 0 ? '' : '<p class="ratings-note">Barclays price target unavailable.</p>';
+  return `<section class="analyst-target-scatter"><div class="ratings-heading"><div><h3>Analyst price targets</h3><p>Published low, median, mean, and high targets.${updated}</p></div></div><div class="analyst-target-legend" aria-label="Target color key"><span><i class="analyst-target-low"></i>Low</span><span><i class="analyst-target-median"></i>Median</span><span><i class="analyst-target-mean"></i>Mean</span><span><i class="analyst-target-high"></i>High</span><span><i class="analyst-target-barclays"></i>Barclays</span><span><i class="analyst-target-current-key"></i>Current price</span></div><svg class="analyst-target-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Analyst price target scatter plot"><title>Analyst price target scatter plot</title>${grid}${priceMarker}${pointMarks}<line class="analyst-target-axis" x1="${left}" x2="${right}" y1="${bottom}" y2="${bottom}"/></svg>${barclaysNote}</section>`;
+}
+function getShortSqueezeAnalysis(dossier) {
+  const engine = globalThis.ShortSqueeze;
+  if (!engine || !dossier) return null;
+  const shortInterest = dossier.marketSentiment?.shortInterest || {};
+  const history = Array.isArray(shortInterest.history) ? shortInterest.history.filter(row => Number.isFinite(row?.percentOfFloat)).sort((a, b) => String(a.date || a.asOf).localeCompare(String(b.date || b.asOf))) : [];
+  const previous = history.length > 1 ? history.at(-2)?.percentOfFloat : null;
+  // Use daily OHLCV independent of the visible chart range. That keeps the
+  // squeeze model's ATR, price structure, and relative volume on the same
+  // daily basis whether the user is viewing 1 day, 1 month, or Max.
+  const daily = chartData?.smaHistory?.v?.length ? chartData.smaHistory : chartData;
+  const closes = daily?.c || [], highs = daily?.h || closes, lows = daily?.l || closes, volumes = daily?.v || [];
+  const price = Number(String(dossier.price || closes.at(-1) || '').replace(/[^0-9.-]/g, '')) || closes.at(-1) || null;
+  const recentVolumes = volumes.slice(-21, -1).filter(Number.isFinite);
+  const relativeVolume = Number.isFinite(volumes.at(-1)) && recentVolumes.length ? volumes.at(-1) / (recentVolumes.reduce((sum, value) => sum + value, 0) / recentVolumes.length) : null;
+  const provider = dossier.marketSentiment?.shortSqueeze || dossier.shortSqueezeProviderData || {};
+  const ibkr = shortableSharesBySymbol[ticker] || {};
+  const sharesAvailable = Number(ibkr.current?.sharesAvailable);
+  const borrowFeeRate = Number(ibkr.feeCurrent?.feeRate);
+  const feeDate = row => String(row?.sourceDate || row?.observedAt || '').slice(0, 10).replaceAll('-', '');
+  const currentFeeDay = feeDate(ibkr.feeCurrent);
+  // Compare IBKR's latest historical FEE_RATE bar with its immediately
+  // preceding bar. The source dates are supplied by IBKR, so weekends and
+  // market holidays are naturally skipped.
+  const feeBaseline = (Array.isArray(ibkr.feeHistory) ? ibkr.feeHistory : [])
+    .filter(row => {
+      const rowDay = feeDate(row);
+      return Number.isFinite(Number(row?.feeRate)) && /^\d{8}$/.test(rowDay) && rowDay < currentFeeDay;
+    })
+    .sort((a, b) => feeDate(b).localeCompare(feeDate(a)))[0] || null;
+  const borrowFeeChange1d = Number.isFinite(borrowFeeRate) && Number.isFinite(Number(feeBaseline?.feeRate)) && Number(feeBaseline.feeRate) > 0
+    ? (borrowFeeRate - Number(feeBaseline.feeRate)) / Number(feeBaseline.feeRate) * 100
+    : null;
+  const fingerprint = JSON.stringify({ price, short: [shortInterest.percentOfFloat, shortInterest.daysToCover, shortInterest.sharesShort, previous, history.at(-1)?.percentOfFloat], ibkr: [sharesAvailable, borrowFeeRate, ibkr.feeCurrent?.sourceDate, feeBaseline?.sourceDate], close: closes.slice(-80), high: highs.slice(-80), low: lows.slice(-80), volume: volumes.slice(-21), provider });
+  const cached = shortSqueezeCache.get(ticker);
+  if (cached?.fingerprint === fingerprint) return cached.analysis;
+  const zone = engine.calculateAccelerationZone({ closes, highs, lows, callStrikes: provider.callStrikes || [] });
+  const analysis = engine.analyze({ shortFloat: shortInterest.percentOfFloat, shortFloatChange: Number.isFinite(previous) && Number.isFinite(shortInterest.percentOfFloat) && previous ? (shortInterest.percentOfFloat - previous) / previous : null, daysToCover: shortInterest.daysToCover, sharesShort: shortInterest.sharesShort, sharesAvailable, borrowFeeRate, callOi: provider.callOi, putOi: provider.putOi, currentPrice: price, relativeVolume, zone });
+  analysis.data.borrowFeeChange1d = borrowFeeChange1d;
+  analysis.data.borrowFeePreviousEod = Number.isFinite(Number(feeBaseline?.feeRate)) ? Number(feeBaseline.feeRate) * 100 : null;
+  analysis.data.borrowFeeBaselineAt = feeBaseline?.observedAt || null;
+  shortSqueezeCache.set(ticker, { fingerprint, analysis });
+  return analysis;
+}
+function squeezeInfo(label, definition) {
+  return `<span class="squeeze-info" tabindex="0">${escape(label)}<i aria-hidden="true">?</i><span class="squeeze-tooltip" role="tooltip">${escape(definition)}</span></span>`;
+}
+function squeezeMetric(label, value, note = '', definition = '', valueDetail = '', className = '') { return `<div${className ? ` class="${escape(className)}"` : ''}><span>${squeezeInfo(label, definition || label)}</span><strong>${escape(value)}${valueDetail}</strong>${note ? `<small>${escape(note)}</small>` : ''}</div>`; }
+function renderShortSqueezeAnalysis(dossier) {
+  const analysis = getShortSqueezeAnalysis(dossier);
+  if (!analysis) return '<section class="short-squeeze-analysis empty-state"><h3>Short squeeze analysis unavailable</h3><p>Price-chart data is still loading. Refresh market data and try again.</p></section>';
+  const factors = analysis.factors || {}, data = analysis.data || {};
+  const score = Number.isFinite(analysis.score) ? `${analysis.score}/100` : 'N/A';
+  const percent = value => Number.isFinite(value) ? `${value.toFixed(2)}%` : 'N/A';
+  const number = value => Number.isFinite(value) ? value.toFixed(2) : 'N/A';
+  const scoreLevels = 'Score guide: 0-19 Very Low; 20-39 Low; 40-59 Moderate; 60-74 Elevated; 75-89 High; 90-100 Extreme.';
+  const factorRows = [
+    ['Short Crowding', factors.shortCrowding, 'Measures short float and its most recent reported change. Higher short float and a rising short-float trend raise this score.'],
+    ['Exit Difficulty', factors.exitDifficulty, 'Uses days to cover: estimated trading days for reported short interest to be repurchased at average volume. Higher values raise this score.'],
+    ['Borrow Pressure', factors.borrowPressure, 'Combines the current IBKR borrow fee and current shares available relative to reported shares short. Higher fees and fewer available shares raise this score. Both are broker-specific and can change quickly.'],
+    ['Options Pressure', factors.optionsPressure, 'Uses current call open interest divided by put open interest from the public options chain. It is positioning context, not proof of a gamma squeeze.'],
+    ['Technical Pressure', factors.technicalPressure, 'Measures how close price is to the calculated acceleration zone. A move into or through the zone raises this score.'],
+    ['Relative Volume', factors.volume, 'Latest daily volume divided by the preceding 20 trading days average volume. More than 1x means above-average activity.']
+  ].map(([label, value, definition]) => `<li><span>${squeezeInfo(label, `${definition} ${scoreLevels}`)}</span><strong>${Number.isFinite(value) ? `${Math.round(value)}/100` : 'N/A'}</strong></li>`).join('');
+  const zone = analysis.zone ? `$${analysis.zone.low.toFixed(2)}-$${analysis.zone.high.toFixed(2)}` : 'N/A';
+  const borrowFee = Number.isFinite(data.borrowFeeRate) ? `${data.borrowFeeRate.toFixed(2)}%` : 'N/A';
+  const borrowFeeChange = Number.isFinite(data.borrowFeeChange1d)
+    ? `<span class="borrow-fee-change ${data.borrowFeeChange1d > 0 ? 'ticker-gain' : data.borrowFeeChange1d < 0 ? 'ticker-loss' : 'neutral'}">(${data.borrowFeeChange1d >= 0 ? '+' : ''}${data.borrowFeeChange1d.toFixed(2)}%)</span>`
+    : '<span class="borrow-fee-change neutral">(—)</span>';
+  const borrowFeePreviousEod = Number.isFinite(data.borrowFeePreviousEod) ? `Previous EOD: ${data.borrowFeePreviousEod.toFixed(2)}%` : 'Previous EOD: N/A';
+  const optionsRatio = Number.isFinite(data.callOi) && Number.isFinite(data.putOi) && data.putOi > 0 ? `${(data.callOi / data.putOi).toFixed(2)}x call/put OI` : 'N/A';
+  const optionsNote = dossier.marketSentiment?.shortSqueeze?.optionsSource || 'N/A - public options-chain data unavailable for this ticker';
+  const nextStep = analysis.status === 'Active Squeeze'
+    ? 'Current price and daily-volume conditions meet this tool\'s confirmation rules. Verify a catalyst and fresh short data before treating this as actionable.'
+    : analysis.status === 'Acceleration'
+      ? 'The score is high and price is testing or moving through the acceleration zone. Sustained daily volume and a fresh catalyst would be needed for stronger confirmation.'
+      : analysis.status === 'Ignition'
+        ? 'Pressure is elevated, but price and volume confirmation is incomplete. A sustained move through the acceleration zone with expanding volume would improve confirmation.'
+        : analysis.status === 'Pressure Building'
+          ? 'Some crowding or technical pressure is present, but the full squeeze setup is incomplete. Watch short-float updates, volume expansion, and a defined catalyst.'
+          : 'Available evidence does not show a confirmed squeeze setup. The score can change when fresh short-interest, IBKR lending, daily-chart, or options data changes.';
+  return `<section class="short-squeeze-analysis"><div class="short-squeeze-heading"><div><h3>Short Squeeze Analysis</h3><p>Deterministic research score using reported short interest, live IBKR lending data, options, price, and daily volume.</p></div><div class="squeeze-score" title="Estimates current conditions that can contribute to short-squeeze pressure. ${scoreLevels}"><strong>${score}</strong><span>${escape(analysis.status)}</span></div></div><div class="squeeze-coverage"><span title="The share of weighted score factors that had usable data. Missing values are excluded rather than treated as zero.">Data coverage: <strong>${analysis.coverage}%</strong></span><span title="Confidence reflects data coverage: High 80%+, Medium 50-79%, Low below 50%.">Confidence: <strong>${escape(analysis.confidence)}</strong></span><span>Calculated from available sources only</span></div><div class="squeeze-metrics">${squeezeMetric('Short Float', percent(data.shortFloat), Number.isFinite(data.shortFloatChange) ? `${data.shortFloatChange >= 0 ? '+' : ''}${data.shortFloatChange.toFixed(1)}% vs prior report` : 'Trend N/A', 'Reported shares sold short divided by public float. The note compares the latest report with the prior report.')}${squeezeMetric('Days To Cover', number(data.daysToCover), '', 'Reported short interest divided by average daily trading volume: the estimated trading days needed for shorts to cover at average volume.')}${squeezeMetric('Relative Volume', Number.isFinite(data.relativeVolume) ? `${data.relativeVolume.toFixed(2)}x` : 'N/A', '', 'Latest daily volume divided by the previous 20 trading days average volume. More than 1x means above-average activity.')}${squeezeMetric('Options Pressure', optionsRatio, optionsNote, 'Current call open interest divided by put open interest across the nearest available option expirations. It is one positioning input, not proof of a gamma squeeze.')}${squeezeMetric('Borrow Fee', borrowFee, `${borrowFeePreviousEod} · ${Number.isFinite(data.sharesAvailable) ? `${Math.round(data.sharesAvailable).toLocaleString()} IBKR shares available` : 'IBKR availability N/A'}`, 'IBKR\'s latest published annualized borrow fee. The parenthetical value compares this fee with the latest available observation from the prior trading day. Higher fees and fewer shares available relative to reported shares short raise the separate Borrow Pressure score. It is broker-specific, can change quickly, and is not a guaranteed execution rate.', borrowFeeChange, 'borrow-fee-metric')}${squeezeMetric('Acceleration Zone', zone, analysis.zone ? 'Technical price structure' : 'Insufficient price structure', 'A price region where recent resistance and prior highs cluster. Current price is included in Technical Pressure; crossing the zone does not guarantee a squeeze.')}</div><div class="squeeze-factor-section"><h4>${squeezeInfo('Score Breakdown', `Each factor is normalized to 0-100 before weights are applied. ${scoreLevels}`)}</h4><ul>${factorRows}</ul></div><div class="squeeze-explanation"><h4>What would need to happen</h4><p>${nextStep}</p><h4>Disconfirming Conditions</h4><p>Short interest declines, borrow availability rises, borrow fee falls, volume fades, price rejects the zone, or no catalyst emerges.</p></div></section>`;
+}
+function shortableRelativeTime(iso) {
+  const seconds = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (seconds < 60) return `${seconds} seconds ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+  return `${Math.floor(seconds / 86400)} days ago`;
+}
+function renderShortableSharesGraph(history = []) {
+  const rows = history.slice().reverse().filter(row => Number.isFinite(Number(row?.sharesAvailable)) && row?.observedAt);
+  if (!rows.length) return '<p class="shortable-empty">No availability history has been collected for this range yet.</p>';
+  const width = 760, height = 270, left = 58, right = 18, top = 18, bottom = 42, plotWidth = width - left - right, plotHeight = height - top - bottom;
+  const values = rows.map(row => Number(row.sharesAvailable));
+  const max = Math.max(...values, 1), paddedMax = Math.ceil(max * 1.1 / 1000) * 1000 || 1;
+  const x = index => left + (rows.length === 1 ? plotWidth / 2 : index / (rows.length - 1) * plotWidth);
+  const y = value => top + plotHeight - value / paddedMax * plotHeight;
+  const points = rows.map((row, index) => `${x(index).toFixed(1)},${y(Number(row.sharesAvailable)).toFixed(1)}`).join(' ');
+  const labels = [0, .5, 1].map(ratio => ({ value: paddedMax * (1 - ratio), y: top + plotHeight * ratio }));
+  const dateLabel = row => new Date(row.observedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  const indices = [...new Set([0, Math.floor((rows.length - 1) / 2), rows.length - 1])];
+  const circles = rows.map((row, index) => `<circle class="shortable-graph-point" cx="${x(index).toFixed(1)}" cy="${y(Number(row.sharesAvailable)).toFixed(1)}" r="4"><title>${escape(new Date(row.observedAt).toLocaleString())}: ${Number(row.sharesAvailable).toLocaleString()} shares available</title></circle>`).join('');
+  return `<div class="shortable-graph-wrap"><svg class="shortable-graph" viewBox="0 0 ${width} ${height}" role="img" aria-label="IBKR shortable shares availability history"><g class="shortable-graph-grid">${labels.map(label => `<line x1="${left}" x2="${width - right}" y1="${label.y}" y2="${label.y}"/><text x="${left - 9}" y="${label.y + 4}" text-anchor="end">${Math.round(label.value).toLocaleString()}</text>`).join('')}</g><polyline class="shortable-graph-line" points="${points}"/>${circles}${indices.map(index => `<text class="shortable-graph-date" x="${x(index)}" y="${height - 12}" text-anchor="middle">${escape(dateLabel(rows[index]))}</text>`).join('')}</svg><p class="shortable-graph-hint">Hover a point for its local timestamp and shares available.</p></div>`;
+}
+function renderShortableShares(symbol) {
+  const data = shortableSharesBySymbol[symbol];
+  const ranges = [['today', 'Today'], ['5d', '5 Days'], ['1m', '1 Month'], ['3m', '3 Months'], ['all', 'All']];
+  const filters = `<div class="shortable-controls"><div class="shortable-filters">${ranges.map(([value, label]) => `<button type="button" data-shortable-range="${value}" class="${shortableRange === value ? 'active' : ''}">${label}</button>`).join('')}</div><div class="shortable-display-toggle" aria-label="Shortable shares display"><button type="button" data-shortable-display="table" class="${shortableDisplay === 'table' ? 'active' : ''}">Table</button><button type="button" data-shortable-display="graph" class="${shortableDisplay === 'graph' ? 'active' : ''}">Graph</button></div></div>`;
+  if (!data) return `<section class="shortable-shares-panel"><div class="shortable-heading"><div><h3>Shortable Shares Availability <span class="shortable-info" title="The number of shares Interactive Brokers currently reports as available to borrow for short selling. This represents IBKR's lending inventory and is not total market-wide short availability.">?</span></h3><p>IBKR securities-lending availability</p></div><span class="shortable-status status-offline">Loading</span></div>${filters}<p class="shortable-empty">Checking the local IBKR TWS / Gateway connection…</p></section>`;
+  const current = data.current;
+  const status = String(data.status || 'offline');
+  const connection = data.connection || {};
+  const statusLabel = status === 'live' ? 'Live' : status === 'reconnecting' ? 'Reconnecting' : status === 'gateway-timeout' ? 'Gateway Timeout' : status === 'unavailable' ? 'Unavailable' : 'Offline';
+  const rows = (data.history || []).map((row, index, all) => {
+    const prior = all[index + 1];
+    const change = prior ? row.sharesAvailable - prior.sharesAvailable : null;
+    return `<tr><td>${escape(shortableRelativeTime(row.observedAt))}</td><td>${escape(new Date(row.observedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }))}</td><td>${Number(row.sharesAvailable).toLocaleString()}</td><td class="${change > 0 ? 'ticker-gain' : change < 0 ? 'ticker-loss' : ''}">${change === null ? '—' : `${change >= 0 ? '+' : ''}${change.toLocaleString()}`}</td></tr>`;
+  }).join('');
+  const tableRows = (data.history || []).map((row, index, all) => {
+    const prior = all[index + 1];
+    const change = prior ? row.sharesAvailable - prior.sharesAvailable : null;
+    return `<tr class="${index === 0 ? 'shortable-latest-row' : ''}"><td>${escape(shortableRelativeTime(row.observedAt))}</td><td>${escape(new Date(row.observedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' }))}</td><td>${Number(row.sharesAvailable).toLocaleString()}</td><td class="${change > 0 ? 'ticker-gain' : change < 0 ? 'ticker-loss' : ''}">${change === null ? '—' : `${change >= 0 ? '+' : ''}${change.toLocaleString()}`}</td><td>IBKR</td></tr>`;
+  }).join('');
+  const connectionDetail = connection.detail || (status === 'offline' ? 'Start TWS or IB Gateway and enable API connections.' : 'Waiting for IBKR shortable-share data.');
+  const emptyRow = `<tr><td colspan="5" class="shortable-empty-cell">No shortable-share value has been received. ${escape(connectionDetail)}</td></tr>`;
+  const display = shortableDisplay === 'graph' ? renderShortableSharesGraph(data.history || []) : `<div class="shortable-table-wrap"><table><thead><tr><th>Time Since Update</th><th>Local Timestamp</th><th>Shares Available</th><th>Change</th><th>Source</th></tr></thead><tbody>${tableRows || emptyRow}</tbody></table></div>`;
+  return `<section class="shortable-shares-panel"><div class="shortable-heading"><div><h3>Shortable Shares Availability <span class="shortable-info" title="The number of shares Interactive Brokers currently reports as available to borrow for short selling. This represents IBKR's lending inventory and is not total market-wide short availability.">?</span></h3><p>Live IBKR availability history. The latest reported value is highlighted.</p></div><span class="shortable-status status-${escape(status)}">${statusLabel}</span></div>${filters}${display}<p class="shortable-connection-detail">${escape(connectionDetail)}</p><small class="shortable-note">${escape(data.note || 'History begins when monitoring is enabled.')}</small></section>`;
+  const currentValue = current && Number.isFinite(current.sharesAvailable) ? Number(current.sharesAvailable).toLocaleString() : '—';
+  const timing = current?.observedAt ? `Last updated: ${shortableRelativeTime(current.observedAt)}` : status === 'offline' ? 'Start TWS or IB Gateway and enable API connections.' : 'Waiting for IBKR shortable-share data.';
+  return `<section class="shortable-shares-panel"><div class="shortable-heading"><div><h3>Shortable Shares Availability <span class="shortable-info" title="The number of shares Interactive Brokers currently reports as available to borrow for short selling. This represents IBKR's lending inventory and is not total market-wide short availability.">?</span></h3><p>IBKR securities-lending availability</p></div><span class="shortable-status status-${escape(status)}">${statusLabel}</span></div><div class="shortable-current"><span>Shares Available to Short</span><strong>${currentValue}</strong><small>${escape(timing)} · Source: IBKR</small></div>${filters}${rows ? `<div class="shortable-table-wrap"><table><thead><tr><th>Time Since Last Change</th><th>Timestamp</th><th>Shares Available</th><th>Change</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="shortable-empty">Shortable-share availability is currently unavailable from IBKR. 0 shares is shown as 0 when IBKR reports it.</p>'}<small class="shortable-note">${escape(data.note || 'History begins when monitoring is enabled.')}</small></section>`;
+}
+async function refreshShortableShares(symbol) {
+  try { shortableSharesBySymbol[symbol] = await window.portfolioApp.getShortableShares({ symbol, range: shortableRange }); if (section === 'short-interest' && ticker === symbol) renderContent(); } catch (error) { shortableSharesBySymbol[symbol] = { symbol, status: 'unavailable', history: [], current: null, note: error.message || 'IBKR data is unavailable.' }; if (section === 'short-interest' && ticker === symbol) renderContent(); }
+}
+function renderRatings(dossier, showShortInterest = false) {
+  const analysts = dossier.marketSentiment?.analysts, shortInterest = dossier.marketSentiment?.shortInterest;
+  const analystPanel = analysts ? (() => {
+    const total = analysts.buy + analysts.hold + analysts.sell;
+    const period = analysts.period ? new Date(`${analysts.period}T12:00:00`).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : 'Latest available';
+    const barclaysRating = ['buy', 'hold', 'sell'].includes(analysts.barclays?.rating) ? analysts.barclays.rating : null;
+    const rows = [['Buy', analysts.buy, 'ratings-buy', 'buy'], ['Hold', analysts.hold, 'ratings-hold', 'hold'], ['Sell', analysts.sell, 'ratings-sell', 'sell']].map(([label, value, style, rating]) => {
+      const isBarclays = barclaysRating === rating && value > 0;
+      const otherValue = Math.max(0, value - (isBarclays ? 1 : 0));
+      const otherWidth = total ? otherValue / total * 100 : 0, barclaysWidth = isBarclays && total ? 100 / total : 0;
+      return `<div class="rating-row"><span>${label}</span><div class="rating-track" aria-label="${label}: ${value} of ${total} analysts${isBarclays ? ', including Barclays' : ''}"><i class="${style}" style="width:${otherWidth}%"></i>${isBarclays ? `<i class="ratings-barclays" style="width:${barclaysWidth}%" title="Barclays ${label}"></i>` : ''}</div><strong>${value}</strong></div>`;
+    }).join('');
+    const currentPrice = Number(String(dossier.price || '').replace(/[^0-9.-]/g, ''));
+    const barclaysSource = analysts.barclays?.source ? ` Source: ${analysts.barclays.source}.` : '';
+    const barclaysNote = barclaysRating ? `Orange segment: Barclays ${barclaysRating[0].toUpperCase()}${barclaysRating.slice(1)}.${barclaysSource}` : analysts.barclays?.brokerConfirmed ? `Nasdaq confirms Barclays coverage; a current published Buy/Hold/Sell rating was not returned.${barclaysSource}` : `Barclays rating unavailable.${barclaysSource}`;
+    return `<section class="ratings-panel"><div class="ratings-heading"><div><h3>Analyst consensus</h3><p>Latest recommendation trend (${escape(period)}).</p><span class="data-source">Source: Financial Modeling Prep and public analyst sources</span></div><strong>${total} analysts</strong></div><div class="rating-rows">${rows}</div><p class="ratings-note">Buy includes Strong Buy; Sell includes Strong Sell. ${barclaysNote}</p>${renderAnalystTargetScatter(analysts.priceTargets, currentPrice)}</section>`;
+  })() : '<section class="ratings-panel empty-state"><h3>Analyst consensus unavailable</h3><p>Published analyst coverage is not currently supplied for this ticker. Try Refresh market data later.</p><span class="data-source">Source: Financial Modeling Prep and public analyst sources</span></section>';
+  const shortPanel = shortInterest && [shortInterest.percentOfFloat, shortInterest.sharesShort, shortInterest.daysToCover].some(Number.isFinite) ? `<section class="ratings-panel short-interest-panel"><div class="ratings-heading"><div><h3>Short interest</h3><p>Latest available report.</p><span class="data-source">Source: Financial Modeling Prep</span></div></div>${renderShortInterestChart(shortInterest)}${renderShortSqueezeAnalysis(dossier)}${renderShortableShares(ticker)}</section>` : `<section class="ratings-panel empty-state"><h3>Short interest unavailable</h3><p>This provider does not currently publish usable short-interest data for this ticker.</p><span class="data-source">Source: Financial Modeling Prep</span>${renderShortSqueezeAnalysis(dossier)}${renderShortableShares(ticker)}</section>`;
+  return showShortInterest ? shortPanel : analystPanel;
+}
+function renderResearchDesk(dossier) {
+  const messages = Array.isArray(dossier.researchDeskHistory) ? dossier.researchDeskHistory : [];
+  const loading = researchDeskLoadingTicker === ticker;
+  const history = messages.length ? messages.map(message => {
+    const role = message?.role === 'assistant' ? 'assistant' : 'user';
+    const when = message?.createdAt ? new Date(message.createdAt) : null;
+    const time = when && !Number.isNaN(when.getTime()) ? when.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+    return `<article class="research-desk-message ${role}"><header><strong>${role === 'assistant' ? 'Research Desk' : 'You'}</strong>${time ? `<time>${escape(time)}</time>` : ''}</header><div>${escape(message?.content || '').replace(/\n/g, '<br>')}</div></article>`;
+  }).join('') : '<div class="research-desk-empty"><strong>Start a conversation about this stock.</strong><p>Ask about the company story, thesis, risks, earnings, competitors, or your saved notes.</p></div>';
+  return `<section class="research-desk"><div class="research-desk-heading"><div><h3>Research Desk</h3><p>Private, saved AI conversation for ${escape(ticker)}. It uses this dashboard’s overview, market snapshot, and your notes as context.</p></div>${messages.length ? '<button id="research-desk-clear" type="button">Clear Chat</button>' : ''}</div><div id="research-desk-history" class="research-desk-history" aria-live="polite">${history}${loading ? '<div class="research-desk-thinking"><i></i> Research Desk is thinking…</div>' : ''}</div><form id="research-desk-form" class="research-desk-form"><label for="research-desk-input">Ask about ${escape(ticker)}</label><textarea id="research-desk-input" data-ticker="${escape(ticker)}" spellcheck="true" lang="en-US" placeholder="Ask anything about ${escape(ticker)}…" ${loading ? 'disabled' : ''}>${escape(researchDeskDrafts[ticker] || '')}</textarea><div><small>Research assistance only — answers identify unavailable current or source-backed information instead of making it up.</small><button type="submit" ${loading ? 'disabled' : ''}>${loading ? 'Thinking…' : 'Ask Research Desk'}</button></div></form></section>`;
+}
+function renderContent() {
+  saveActiveNoteDraft();
+  const d = holdings[ticker]; let html = '';
+  if (section === 'thesis') html = `<div class="thesis-actions"><button id="refresh-thesis" type="button">Refresh</button><small>Regenerates this research using the latest company overview and your saved notes.</small></div>${d.thesis ? `<div class="thesis-grid"><article><h3>Bull thesis</h3><p>${escape(d.thesis.bullThesis)}</p></article><article><h3>Bear thesis</h3><p>${escape(d.thesis.bearThesis)}</p></article><article><h3>Evidence to watch</h3><p>${escape(d.thesis.evidenceToWatch)}</p></article><article><h3>Disconfirming signal</h3><p>${escape(d.thesis.disconfirmingSignal)}</p></article></div>` : table(['Thesis claim', 'Evidence to watch', 'Disconfirming signal'], d.claims)}`;
+  if (section === 'earnings') html = renderEarningsHistory(d);
+  if (section === 'financials') html = renderFinancials(d);
+  if (section === 'ratings' || section === 'short-interest') html = renderRatings(d, section === 'short-interest');
+  if (section === 'news') html = renderNews(d);
+  if (section === 'notes') html = `<label for="new-note">New research note</label><textarea id="new-note" data-ticker="${escape(ticker)}" spellcheck="true" lang="en-US" placeholder="What changed your view? What evidence are you looking for?"></textarea><small class="note-spellcheck-help">Misspelled words are underlined. Right-click one for spelling suggestions.</small><button id="save-note">Add note</button><div>${d.notes.map((note, index) => { const noteKey = `${ticker}:${index}`, editing = editingNote?.ticker === ticker && editingNote?.index === index; return `<article class="note"><div class="note-heading"><time>${escape(note[0])}</time><div class="note-actions">${editing ? `<button type="button" data-save-note-edit="${index}">Save</button><button type="button" data-cancel-note-edit="${index}">Cancel</button>` : `<button type="button" data-edit-note="${index}">Edit</button><button type="button" class="delete-note" data-delete-note="${index}">Delete</button>`}</div></div>${editing ? `<textarea class="note-edit-textarea" data-note-editor data-ticker="${escape(ticker)}" data-note-index="${index}" spellcheck="true" lang="en-US">${escape(noteEditDrafts[noteKey] ?? note[1])}</textarea>` : `<div class="note-body">${escape(note[1])}</div>`}</article>`; }).join('')}</div>`;
+  $('content').classList.toggle('news-content', section === 'news');
+  $('content').innerHTML = html;
+  renderEarningsDetailsSide();
+  if (section === 'thesis') $('refresh-thesis').onclick = () => { if (thesisInProgress.has(ticker)) return; if (!d.aiOverview) { $('message').textContent = 'The company overview must finish loading before the thesis can be refreshed.'; return; } $('refresh-thesis').disabled = true; $('refresh-thesis').textContent = 'Refreshing…'; void updateThesis(ticker, true); };
+  if (section === 'notes') {
+    $('new-note').value = noteDrafts[ticker] || '';
+    ['pointerdown', 'mousedown', 'click'].forEach(type => $('new-note').addEventListener(type, event => event.stopPropagation()));
+    $('new-note').oninput = event => { noteDrafts[ticker] = event.target.value; };
+    $('save-note').onclick = () => { const input = $('new-note'), value = input.value.trim(); if (!value) return; d.notes.unshift(['Today', value]); d.thesisGenerated = false; delete d.thesisGeneratedFrom; input.value = ''; noteDrafts[ticker] = ''; persist(); renderContent(); void updateThesis(ticker); };
+    document.querySelectorAll('[data-edit-note]').forEach(button => button.onclick = () => { const index = Number(button.dataset.editNote); if (!Number.isInteger(index) || !d.notes[index]) return; editingNote = { ticker, index }; noteEditDrafts[`${ticker}:${index}`] = d.notes[index][1] || ''; renderContent(); requestAnimationFrame(() => document.querySelector(`[data-note-editor][data-note-index="${index}"]`)?.focus()); });
+    document.querySelectorAll('[data-note-editor]').forEach(input => ['pointerdown', 'mousedown', 'click'].forEach(type => input.addEventListener(type, event => event.stopPropagation())));
+    document.querySelectorAll('[data-note-editor]').forEach(input => input.oninput = event => { noteEditDrafts[`${ticker}:${event.target.dataset.noteIndex}`] = event.target.value; });
+    document.querySelectorAll('[data-save-note-edit]').forEach(button => button.onclick = () => { const index = Number(button.dataset.saveNoteEdit), input = document.querySelector(`[data-note-editor][data-note-index="${index}"]`), value = input?.value.trim(); if (!Number.isInteger(index) || !d.notes[index] || !value) return; d.notes[index][1] = value; delete noteEditDrafts[`${ticker}:${index}`]; editingNote = null; d.thesisGenerated = false; delete d.thesisGeneratedFrom; persist(); renderContent(); void updateThesis(ticker); });
     document.querySelectorAll('[data-cancel-note-edit]').forEach(button => button.onclick = () => { const index = Number(button.dataset.cancelNoteEdit); delete noteEditDrafts[`${ticker}:${index}`]; editingNote = null; renderContent(); });
     document.querySelectorAll('[data-delete-note]').forEach(button => button.onclick = () => { const index = Number(button.dataset.deleteNote); if (!Number.isInteger(index) || !d.notes[index]) return; d.notes.splice(index, 1); d.thesisGenerated = false; delete d.thesisGeneratedFrom; persist(); renderContent(); void updateThesis(ticker); });
   }
@@ -2021,7 +3081,7 @@ $('delete-ticker-confirm').onclick = () => {
   closeDeleteTickerModal();
   if (symbol) void deleteTicker(symbol);
 };
-function openSnapTradeReconnectModal({ connectionId = '', institution = 'Vanguard' } = {}) {
+function openSnapTradeReconnectModal({ connectionId = '', institution = 'Brokerage' } = {}) {
   pendingSnapTradeReconnect = { connectionId, institution };
   $('snaptrade-reconnect-title').textContent = `Reconnect ${institution}`;
   $('snaptrade-reconnect-modal').hidden = false;
@@ -2182,4 +3242,3 @@ setInterval(() => { if (ticker && range !== 'CUSTOM') void refreshMarketData(); 
 setInterval(() => { if (snapTradeState.configured) void refreshPortfolioQuotes(); }, 5000);
 setInterval(() => { if (snapTradeState.configured) void refreshSnapTradePortfolio(); }, 60000);
 setInterval(() => { void refreshTrendingStocks(); }, 900000);
-
