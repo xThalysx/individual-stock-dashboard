@@ -14,7 +14,7 @@ This project was designed and developed as a personal research platform with an 
 - Track macroeconomic releases, commodities, and configurable Google Trends topics.
 - Generate company theses and evidence analysis through a local Ollama model.
 - Maintain ticker-specific notes and local research history.
-- Run a persistent social-arbitrage research workflow that scores and retains its leading candidates.
+- Experiment with a social-arbitrage AI Agent prototype that scores and retains research candidates. This feature is not production-ready and should not be treated as a functioning investment signal.
 
 ## Architecture
 
@@ -36,6 +36,10 @@ Renderer
 ```
 
 The application uses Electron context isolation and a narrow preload bridge instead of exposing Node.js directly to the renderer.
+
+## Experimental AI Agent
+
+The **AI Agent** section is an experimental prototype included to demonstrate local research automation, evidence collection, and candidate-scoring concepts. It is incomplete, may return unavailable or unreliable results, and is not presented as a functioning production feature. Its output should not be relied upon for investment decisions.
 
 ## Data integrations
 
@@ -113,5 +117,3 @@ Joey Fernandez
 ## License
 
 Licensed under the [MIT License](LICENSE).
-
-
