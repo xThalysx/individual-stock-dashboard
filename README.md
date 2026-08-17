@@ -2,7 +2,7 @@
 
 An Electron desktop application that brings company research, interactive market charts, earnings, financial statements, portfolio monitoring, macroeconomic indicators, and locally assisted analysis into one workspace.
 
-This project was designed and developed as a personal research platform with an emphasis on source transparency, configurable data integrations, and persistent local workflows.
+I built this project as a personal financial research platform with an emphasis on source transparency, configurable data integrations, and persistent local workflows.
 
 ## Preview
 
@@ -21,6 +21,20 @@ This project was designed and developed as a personal research platform with an 
 - Generate company theses and evidence analysis through a local Ollama model.
 - Maintain ticker-specific notes and local research history.
 - Experiment with a social-arbitrage AI Agent prototype that scores and retains research candidates. This feature is not production-ready and should not be treated as a functioning investment signal.
+
+## Tech Stack
+
+- **Desktop:** Electron
+- **Runtime:** Node.js
+- **Language:** JavaScript
+- **Package manager:** pnpm
+- **Local AI:** Ollama with Gemma 3
+- **Brokerage integrations:** SnapTrade and Interactive Brokers
+- **Market and economic data:** Finnhub, Financial Modeling Prep, Alpha Vantage, and public financial and economic sources
+
+## Development Approach
+
+I conceived, tested, iterated on, and continue to maintain this application through an AI-assisted development workflow using OpenAI Codex. Features were developed iteratively by defining requirements, testing implementations, identifying regressions or incorrect behavior, and refining changes until the expected functionality was achieved.
 
 ## Architecture
 
