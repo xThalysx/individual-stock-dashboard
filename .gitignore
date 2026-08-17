@@ -1,0 +1,44 @@
+# Dependencies and packaged builds
+node_modules/
+release/
+dist/
+out/
+.electron-cache/
+
+# Private runtime data and diagnostics
+.ibkr-diagnostic/
+backups/
+portfolio-research.json
+market-data-settings.json
+snaptrade-connection.json
+shortable-shares-history.json
+*portfolio*.json
+*holdings*.json
+*brokerage*.json
+*credential*.json
+*secret*.json
+
+# Credentials and local environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs, temporary files, and local screenshots
+*.log
+*.tmp
+*.temp
+*.bak
+*.png~
+screenshots/
+captures/
+renderer/assets/sakura-ribbon-reference.png
+renderer/assets/sakura-ribbon-tree.png
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
