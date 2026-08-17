@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 92" role="img" aria-label="Decorative cherry blossom branch">
+  <defs>
+    <linearGradient id="branch" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f2935"/>
+      <stop offset="1" stop-color="#8b4b5d"/>
+    </linearGradient>
+    <radialGradient id="petal">
+      <stop offset="0" stop-color="#fff4f8"/>
+      <stop offset=".7" stop-color="#f5a9c2"/>
+      <stop offset="1" stop-color="#d96f98"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#7a2c49" flood-opacity=".24"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke="url(#branch)" stroke-linecap="round">
+    <path d="M-12 72C48 61 70 29 137 22c53-6 89 8 146-16" stroke-width="7"/>
+    <path d="M55 55C43 32 40 20 48 4M91 37C81 20 82 12 88-3M136 22c18 14 29 24 37 42M181 23c18-11 30-23 36-38M232 17c22 8 40 19 54 37" stroke-width="3.4"/>
+    <path d="M20 67C11 52 7 42 10 27M118 26c-5-14-3-25 5-37M270 10c15-3 29-9 42-18" stroke-width="2.2"/>
+  </g>
+  <g filter="url(#soft)">
+    <g id="bloom">
+      <ellipse rx="7" ry="3.8" transform="rotate(-12) translate(7 0)" fill="url(#petal)"/>
+      <ellipse rx="7" ry="3.8" transform="rotate(60) translate(7 0)" fill="url(#petal)"/>
+      <ellipse rx="7" ry="3.8" transform="rotate(132) translate(7 0)" fill="url(#petal)"/>
+      <ellipse rx="7" ry="3.8" transform="rotate(204) translate(7 0)" fill="url(#petal)"/>
+      <ellipse rx="7" ry="3.8" transform="rotate(276) translate(7 0)" fill="url(#petal)"/>
+      <circle r="2.1" fill="#f6d36f"/>
+    </g>
+    <use href="#bloom" transform="translate(13 27) scale(.9)"/>
+    <use href="#bloom" transform="translate(30 58) scale(.72) rotate(14)"/>
+    <use href="#bloom" transform="translate(49 10) scale(.82) rotate(-8)"/>
+    <use href="#bloom" transform="translate(56 48) scale(1.05)"/>
+    <use href="#bloom" transform="translate(76 30) scale(.72) rotate(18)"/>
+    <use href="#bloom" transform="translate(91 8) scale(.9)"/>
+    <use href="#bloom" transform="translate(106 31) scale(1.08) rotate(-10)"/>
+    <use href="#bloom" transform="translate(125 5) scale(.68)"/>
+    <use href="#bloom" transform="translate(139 22) scale(.92)"/>
+    <use href="#bloom" transform="translate(158 45) scale(.78) rotate(8)"/>
+    <use href="#bloom" transform="translate(178 22) scale(1.02)"/>
+    <use href="#bloom" transform="translate(201 2) scale(.75)"/>
+    <use href="#bloom" transform="translate(219 18) scale(.92) rotate(11)"/>
+    <use href="#bloom" transform="translate(243 17) scale(.7)"/>
+    <use href="#bloom" transform="translate(267 35) scale(.82)"/>
+    <use href="#bloom" transform="translate(292 13) scale(.62)"/>
+  </g>
+  <g fill="#e887a8" opacity=".72">
+    <circle cx="70" cy="12" r="2"/><circle cx="117" cy="48" r="1.8"/><circle cx="152" cy="12" r="1.5"/>
+    <circle cx="194" cy="40" r="1.8"/><circle cx="255" cy="5" r="1.6"/><circle cx="307" cy="28" r="1.7"/>
+  </g>
+</svg>
+
