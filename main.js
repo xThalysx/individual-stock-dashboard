@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 56253)
-Total output lines: 2944
-
 const { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell, Tray } = require('electron');
 const fs = require('fs/promises');
 const path = require('path');
@@ -299,7 +296,6 @@ async function openSnapTradePortal(_, options = {}) {
   const config = await readSnapTradeConfig();
   const reconnectId = String(options?.connectionId || '').trim();
   const login = await snapTradeRequest(config, 'POST', '/snapTrade/login', {}, {
-    broker: 'VANGUARD',
     connectionType: 'read',
     darkMode: true,
     showCloseButton: true,
@@ -311,7 +307,7 @@ async function openSnapTradePortal(_, options = {}) {
     ...(reconnectId ? { reconnect: reconnectId } : {})
   });
   if (!login.redirectURI) throw new Error('SnapTrade did not return a brokerage connection link.');
-  const window = new BrowserWindow({ width: 520, height: 720, minWidth: 430, minHeight: 620, title: 'Connect Vanguard via SnapTrade', parent: mainWindow || undefined, webPreferences: { contextIsolation: true, nodeIntegration: false } });
+  const window = new BrowserWindow({ width: 520, height: 720, minWidth: 430, minHeight: 620, title: 'Connect Brokerage via SnapTrade', parent: mainWindow || undefined, webPreferences: { contextIsolation: true, nodeIntegration: false } });
   let portalResult = null;
   const finishPortal = (event, url) => {
     if (!isSnapTradeCallback(url)) return;
@@ -1316,7 +1312,355 @@ function policyDcf(financials, context = {}) {
   const base = scenarios.find(item => item.name === 'base');
   if (base.terminalValueShare > .80) flags.push('Low confidence: terminal value is more than 80% of enterprise value.');
   if (latest.cashflow?.FreeCashFlow < 0) flags.push('Low confidence: the latest reported free cash flow was negative.');
-  return { valuePerShare: base.valuePerShare, scenarios, model: 'FCFF', rateLabel: 'WACC', wacc: base.discountRate, terminalGrowth: base.terminalGrowth, growth: initialGrowth, years: 10, asOf: latest.date, confidence: flags.length ? 'Low' : 'Standard', flags, notes, assumptions: { beta, equityRiskPremium, riskFreeRate: context.riskFreeRate, riskFreeSource…6253 tokens truncated….5 && ratio <= 3.5;
+  return { valuePerShare: base.valuePerShare, scenarios, model: 'FCFF', rateLabel: 'WACC', wacc: base.discountRate, terminalGrowth: base.terminalGrowth, growth: initialGrowth, years: 10, asOf: latest.date, confidence: flags.length ? 'Low' : 'Standard', flags, notes, assumptions: { beta, equityRiskPremium, riskFreeRate: context.riskFreeRate, riskFreeSource: context.riskFreeSource, riskFreeDate: context.riskFreeDate, taxRate, debtCost, dilutedShares: shares, cash, debt, capexRate, depreciationRate, nwcRate, currentMargin, matureMargin, industry } };
+}
+function dcfUnavailableReason(financials, symbol) {
+  const periods = [...(financials || [])].sort((a, b) => a.date.localeCompare(b.date));
+  if (periods.length < 2) return 'At least two annual financial-reporting periods are needed to build this DCF.';
+  const latest = periods.at(-1);
+  const revenue = latest.income?.TotalRevenue;
+  const operatingIncome = latest.income?.OperatingIncome;
+  if (!Number.isFinite(revenue) || revenue <= 0) return 'This company is pre-revenue or does not yet have a usable annual revenue history for a DCF.';
+  if (!Number.isFinite(operatingIncome)) return 'This appears to be a financial institution or another business where an FCFF DCF is not the appropriate valuation method.';
+  const capex = latest.cashflow?.CapitalExpenditure;
+  const operatingCashFlow = latest.cashflow?.OperatingCashFlow;
+  if (Number.isFinite(capex) && Number.isFinite(operatingCashFlow) && Math.abs(capex) > operatingCashFlow) return 'Current capital spending exceeds operating cash flow, so the model cannot support a positive intrinsic value without company-specific build-out assumptions.';
+  if (operatingIncome <= 0) return 'The company is currently operating at a loss. A company-specific path to sustainable profitability is needed before a DCF can be estimated responsibly.';
+  return 'The available reported financial inputs do not support a reliable positive FCFF DCF at this time.';
+}
+function isoFromNasdaqDate(value) {
+  const match = String(value || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  return match ? `${match[3]}-${match[1].padStart(2, '0')}-${match[2].padStart(2, '0')}` : null;
+}
+function fiscalQuarterEnd(value) {
+  const match = String(value || '').match(/^(Mar|Jun|Sep|Dec)\s+(\d{4})$/i);
+  if (!match) return null;
+  const month = { mar: '03-31', jun: '06-30', sep: '09-30', dec: '12-31' }[match[1].toLowerCase()];
+  return `${match[2]}-${month}`;
+}
+function htmlText(value) {
+  return String(value || '')
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)))
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number.parseInt(code, 10)))
+    .replace(/&(amp|nbsp|quot|apos|lsquo|rsquo|ldquo|rdquo|ndash|mdash|bull);/gi, (_, entity) => ({ amp: '&', nbsp: ' ', quot: '"', apos: "'", lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', ndash: '–', mdash: '—', bull: '•' }[entity.toLowerCase()] || ' '))
+    .replace(/<[^>]*>/g, ' ')
+    .trim();
+}
+function marketNumber(value) {
+  const text = String(value || '').replace(/,/g, '').trim();
+  if (!text || text === '-' || text === '—') return null;
+  const match = text.match(/(-?)\$?([0-9.]+)\s*([KMBT])?/i);
+  if (!match) return null;
+  const multiplier = { k: 1e3, m: 1e6, b: 1e9, t: 1e12 }[(match[3] || '').toLowerCase()] || 1;
+  return Number(match[1] === '-' ? -Number(match[2]) * multiplier : Number(match[2]) * multiplier);
+}
+async function benzingaEarningsHistory(symbol) {
+  const response = await fetch(`https://www.benzinga.com/quote/${encodeURIComponent(symbol).toLowerCase()}/earnings`, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36' } });
+  if (!response.ok) throw new Error(`Reported earnings history is unavailable (${response.status}).`);
+  const html = await response.text();
+  const rows = [...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].map(match => [...match[1].matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(cell => htmlText(cell[1]))).filter(cells => cells[0]?.toUpperCase() === symbol.toUpperCase() && cells.length >= 12);
+  return rows.map(cells => ({ date: isoFromNasdaqDate(cells[11]), epsActual: marketNumber(cells[5]), revenueActual: marketNumber(cells[9]) })).filter(row => row.date && (Number.isFinite(row.epsActual) || Number.isFinite(row.revenueActual))).sort((a, b) => a.date.localeCompare(b.date));
+}
+async function nasdaqEarningsHistory(symbol) {
+  const response = await fetch(`https://api.nasdaq.com/api/company/${encodeURIComponent(symbol)}/earnings-surprise`, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36', Accept: 'application/json, text/plain, */*', Referer: `https://www.nasdaq.com/market-activity/stocks/${encodeURIComponent(symbol).toLowerCase()}/earnings` } });
+  if (!response.ok) throw new Error(`Reported earnings history is unavailable (${response.status}).`);
+  const rows = (await response.json())?.data?.earningsSurpriseTable?.rows || [];
+  return rows.map(row => ({ date: isoFromNasdaqDate(row.dateReported), fiscalDate: fiscalQuarterEnd(row.fiscalQtrEnd), epsActual: Number.isFinite(Number(row.eps)) ? Number(row.eps) : null })).filter(row => row.date && row.fiscalDate);
+}
+function mergeReportedEarnings(fundamentals, reportedEarnings) {
+  if (!reportedEarnings.length) return fundamentals;
+  const reportedByFiscalDate = new Map(reportedEarnings.map(row => [row.fiscalDate, row]));
+  const merged = fundamentals.map(row => {
+    const reported = reportedByFiscalDate.get(row.date);
+    return reported ? { ...row, date: reported.date, epsActual: reported.epsActual ?? row.epsActual } : row;
+  });
+  for (const reported of reportedEarnings) if (!fundamentals.some(row => row.date === reported.fiscalDate)) merged.push({ date: reported.date, revenueActual: null, epsActual: reported.epsActual });
+  return merged.sort((a, b) => a.date.localeCompare(b.date));
+}
+async function finnhubRequest(endpoint, token) {
+  const separator = endpoint.includes('?') ? '&' : '?';
+  const response = await fetch(`https://finnhub.io/api/v1/${endpoint}${separator}token=${encodeURIComponent(token)}`);
+  if (!response.ok) throw new Error(`${endpoint.split('?')[0]} is unavailable (${response.status}).`);
+  return response.json();
+}
+async function fmpRequest(endpoint, token) {
+  const separator = endpoint.includes('?') ? '&' : '?';
+  const response = await fetch(`https://financialmodelingprep.com/${endpoint}${separator}apikey=${encodeURIComponent(token)}`);
+  const text = await response.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = null; }
+  if (!response.ok) {
+    const message = data?.['Error Message'] || data?.error || (text.includes('Premium Query') ? 'Your Financial Modeling Prep plan does not include historical earnings estimates.' : `Financial Modeling Prep earnings data is unavailable (${response.status}).`);
+    throw new Error(message);
+  }
+  if (data?.['Error Message'] || data?.error) throw new Error(data['Error Message'] || data.error);
+  return data;
+}
+function numberFrom(object, names) {
+  for (const name of names) {
+    const value = object?.[name];
+    if (value !== null && value !== '' && Number.isFinite(Number(value))) return Number(value);
+  }
+  return null;
+}
+async function fmpEarningsHistory(symbol, token) {
+  const rows = await fmpRequest(`stable/earnings?symbol=${encodeURIComponent(symbol)}`, token);
+  if (!Array.isArray(rows)) return [];
+  return rows.map(row => ({
+    date: row.date || row.reportDate || row.fiscalDateEnding || null,
+    revenueActual: numberFrom(row, ['revenue', 'revenueActual', 'actualRevenue']),
+    revenueForecast: numberFrom(row, ['revenueEstimated', 'revenueEstimate', 'estimatedRevenue']),
+    epsActual: numberFrom(row, ['eps', 'epsActual', 'actualEPS']),
+    epsForecast: numberFrom(row, ['epsEstimated', 'epsEstimate', 'estimatedEPS'])
+  })).filter(row => row.date).sort((a, b) => a.date.localeCompare(b.date));
+}
+// A source can lag an issuer's press release by several hours on the day of
+// publication.  Keep a small, explicitly dated set of verified release
+// figures so the earnings table does not hide a result that is already public.
+// These are normal reported rows (not forecasts) and are superseded when the
+// provider returns the same release with its own data.
+const verifiedSameDayEarnings = {
+  AMAT: [{ date: '2026-08-13', revenueActual: 9.12e9, epsActual: 3.50, source: 'Published company results (adjusted EPS)' }]
+};
+function verifiedSameDayEarningsFor(symbol, today) {
+  return (verifiedSameDayEarnings[String(symbol || '').toUpperCase()] || [])
+    .filter(item => item.date <= today)
+    .map(item => ({ ...item }));
+}
+function sameDayPublishedEarnings(today, fmpRows = [], alphaRows = [], reportedRows = []) {
+  // Keep the historical table on its established Yahoo/reported-date path.
+  // This narrow overlay is only for an issuer's release day, when providers
+  // can publish actual EPS/revenue before the ordinary history refresh.
+  return mergeEarningsHistory(
+    fmpRows.filter(row => row?.date === today).map(row => ({ ...row, source: 'Financial Modeling Prep reported earnings' })),
+    alphaRows.filter(row => row?.date === today).map(row => ({ ...row, source: 'Alpha Vantage reported earnings' })),
+    reportedRows.filter(row => row?.date === today).map(row => ({ ...row, source: 'Benzinga / Nasdaq reported earnings' }))
+  ).filter(row => row.date === today && (Number.isFinite(row.epsActual) || Number.isFinite(row.revenueActual)));
+}
+async function alphaVantageEarningsHistory(symbol, token, { refreshDate = null } = {}) {
+  const key = String(symbol || '').toUpperCase();
+  const cached = alphaEarningsCache.get(key);
+  const cachedHasRefreshDate = refreshDate && cached?.rows?.some(row => row.date === refreshDate && (Number.isFinite(row.epsActual) || Number.isFinite(row.revenueActual)));
+  // Most history can safely remain cached for a day. On an expected report day
+  // with no actuals yet, retry at a restrained interval so a pre-release cache
+  // does not hide results that arrive later in the day.
+  const recentlyChecked = cached && Date.now() - Number(cached.checkedAt || 0) < 15 * 60 * 1000;
+  if (cached && cached.expiresAt > Date.now() && (!refreshDate || cachedHasRefreshDate || recentlyChecked)) return cached.rows;
+  const response = await fetch(`https://www.alphavantage.co/query?function=EARNINGS&symbol=${encodeURIComponent(key)}&apikey=${encodeURIComponent(token)}`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.Note || data?.Information || data?.['Error Message']) throw new Error(data?.Note || data?.Information || data?.['Error Message'] || `Alpha Vantage earnings request failed (${response.status}).`);
+  const rows = Array.isArray(data?.quarterlyEarnings) ? data.quarterlyEarnings : [];
+  const normalized = rows.map(row => ({
+    date: String(row?.reportedDate || '').slice(0, 10), fiscalDate: String(row?.fiscalDateEnding || '').slice(0, 10),
+    epsActual: numberFrom(row, ['reportedEPS']), epsForecast: numberFrom(row, ['estimatedEPS']), source: 'Alpha Vantage reported earnings'
+  })).filter(row => /^\d{4}-\d{2}-\d{2}$/.test(row.date)).sort((a, b) => a.date.localeCompare(b.date));
+  alphaEarningsCache.set(key, { expiresAt: Date.now() + 24 * 60 * 60 * 1000, checkedAt: Date.now(), rows: normalized });
+  return normalized;
+}
+function earningsMarkerSourceRank(item = {}) {
+  const source = String(item.source || '').toLowerCase();
+  if (source.includes('alpha vantage')) return 4;
+  if (source.includes('financial modeling prep')) return 3;
+  if (source.includes('benzinga') || source.includes('nasdaq')) return 2;
+  if (source.includes('sec edgar')) return 1;
+  // Fiscal-period data is useful for values, but never as authoritative as a
+  // provider's reported-date field when selecting the chart event date.
+  return 0;
+}
+function mergeEarningsHistory(...sources) {
+  const dated = sources.flatMap(source => source || []).map(item => ({ ...item, date: String(item?.date || '').slice(0, 10) }))
+    .filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date)).sort((a, b) => a.date.localeCompare(b.date));
+  // A quarter can be represented by several providers a few days or weeks
+  // apart (reported date, filing date, or fiscal-period end). A real public
+  // company cannot have two routine quarterly reports inside this window, so
+  // treat them as one event rather than drawing stacked dotted lines.
+  const clusters = [];
+  for (const item of dated) {
+    const cluster = clusters.at(-1);
+    const gap = cluster ? (Date.parse(`${item.date}T12:00:00Z`) - Date.parse(`${cluster.latestDate}T12:00:00Z`)) / 86400000 : Infinity;
+    if (!cluster || gap > 35) clusters.push({ latestDate: item.date, items: [item] });
+    else { cluster.latestDate = item.date; cluster.items.push(item); }
+  }
+  return clusters.map(cluster => {
+    const candidates = [...cluster.items].sort((a, b) => {
+      const rankDifference = earningsMarkerSourceRank(b) - earningsMarkerSourceRank(a);
+      if (rankDifference) return rankDifference;
+      const valuesA = [a.epsActual, a.revenueActual].filter(Number.isFinite).length;
+      const valuesB = [b.epsActual, b.revenueActual].filter(Number.isFinite).length;
+      return valuesB - valuesA;
+    });
+    const primary = candidates[0];
+    // Keep the best provider's reported date, but never let an absent value
+    // from that provider erase an actual supplied by another source for the
+    // same release.  This is common immediately after earnings: one feed
+    // publishes the date first while another publishes EPS/revenue first.
+    const firstActual = field => candidates.find(item => Number.isFinite(item?.[field]))?.[field] ?? null;
+    return {
+      ...primary,
+      epsActual: Number.isFinite(primary.epsActual) ? primary.epsActual : firstActual('epsActual'),
+      revenueActual: Number.isFinite(primary.revenueActual) ? primary.revenueActual : firstActual('revenueActual'),
+      epsForecast: Number.isFinite(primary.epsForecast) ? primary.epsForecast : firstActual('epsForecast'),
+      revenueForecast: Number.isFinite(primary.revenueForecast) ? primary.revenueForecast : firstActual('revenueForecast'),
+      date: primary.date,
+      source: primary.source || 'Reported earnings'
+    };
+  }).sort((a, b) => a.date.localeCompare(b.date));
+}
+function fmpStatementValues(row = {}) {
+  return {
+    income: {
+      TotalRevenue: numberFrom(row, ['revenue', 'totalRevenue']), CostOfRevenue: numberFrom(row, ['costOfRevenue', 'costRevenue']), GrossProfit: numberFrom(row, ['grossProfit']), OperatingExpense: numberFrom(row, ['operatingExpenses', 'sellingGeneralAndAdministrativeExpenses']), OperatingIncome: numberFrom(row, ['operatingIncome']), PretaxIncome: numberFrom(row, ['incomeBeforeTax']), TaxProvision: numberFrom(row, ['incomeTaxExpense']), InterestExpense: numberFrom(row, ['interestExpense']), NetIncomeCommonStockholders: numberFrom(row, ['netIncome']), DilutedEPS: numberFrom(row, ['epsdiluted', 'epsDiluted']), BasicEPS: numberFrom(row, ['eps'])
+    },
+    balance: {
+      CashCashEquivalentsAndShortTermInvestments: numberFrom(row, ['cashAndCashEquivalents', 'cashAndShortTermInvestments']), AccountsReceivable: numberFrom(row, ['netReceivables', 'accountReceivables']), Inventory: numberFrom(row, ['inventory']), AccountsPayable: numberFrom(row, ['accountPayables']), CurrentAssets: numberFrom(row, ['totalCurrentAssets']), TotalAssets: numberFrom(row, ['totalAssets']), CurrentLiabilities: numberFrom(row, ['totalCurrentLiabilities']), TotalLiabilitiesNetMinorityInterest: numberFrom(row, ['totalLiabilities']), StockholdersEquity: numberFrom(row, ['totalStockholdersEquity', 'totalEquity']), TotalDebt: numberFrom(row, ['totalDebt']), NetDebt: numberFrom(row, ['netDebt'])
+    },
+    cashflow: {
+      OperatingCashFlow: numberFrom(row, ['operatingCashFlow', 'netCashProvidedByOperatingActivities']), InvestingCashFlow: numberFrom(row, ['netCashUsedForInvestingActivites', 'netCashUsedForInvestingActivities']), FinancingCashFlow: numberFrom(row, ['netCashProvidedByFinancingActivities', 'netCashUsedProvidedByFinancingActivities']), CapitalExpenditure: numberFrom(row, ['capitalExpenditure']), DepreciationAndAmortization: numberFrom(row, ['depreciationAndAmortization']), ReconciledDepreciation: numberFrom(row, ['depreciationAndAmortization']), FreeCashFlow: numberFrom(row, ['freeCashFlow'])
+    }
+  };
+}
+async function fmpQuarterlyFinancials(symbol, token) {
+  const [income, balance, cashflow] = await Promise.all([
+    fmpRequest(`stable/income-statement?symbol=${encodeURIComponent(symbol)}&period=quarter`, token),
+    fmpRequest(`stable/balance-sheet-statement?symbol=${encodeURIComponent(symbol)}&period=quarter`, token),
+    fmpRequest(`stable/cash-flow-statement?symbol=${encodeURIComponent(symbol)}&period=quarter`, token)
+  ]);
+  const periods = new Map();
+  const add = (rows, section) => {
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const date = String(row?.date || row?.fiscalDateEnding || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+      const prior = periods.get(date) || { date, income: {}, balance: {}, cashflow: {} };
+      Object.assign(prior[section], fmpStatementValues(row)[section]);
+      periods.set(date, prior);
+    }
+  };
+  add(income, 'income'); add(balance, 'balance'); add(cashflow, 'cashflow');
+  return [...periods.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+function mergeFinancialPeriods(primary = [], supplemental = []) {
+  const periods = new Map();
+  for (const row of [...supplemental, ...primary]) {
+    if (!row?.date) continue;
+    const prior = periods.get(row.date) || { date: row.date, income: {}, balance: {}, cashflow: {} };
+    for (const section of ['income', 'balance', 'cashflow']) Object.assign(prior[section], Object.fromEntries(Object.entries(row[section] || {}).filter(([, value]) => Number.isFinite(value))));
+    periods.set(row.date, prior);
+  }
+  return [...periods.values()].sort((a, b) => b.date.localeCompare(a.date));
+}
+async function fmpFloatShares(symbol, token) {
+  const rows = await fmpRequest(`stable/shares-float?symbol=${encodeURIComponent(symbol)}`, token);
+  const row = Array.isArray(rows) ? rows[0] : rows;
+  return numberFrom(row, ['floatShares', 'float', 'freeFloatShares']);
+}
+async function fmpHistoricalSharesOutstanding(symbol, token) {
+  const data = await fmpRequest(`api/v4/historical/shares_float/?symbol=${encodeURIComponent(symbol)}`, token);
+  const rows = Array.isArray(data) ? data : (data?.historical || data?.data || []);
+  if (!Array.isArray(rows)) return [];
+  const byQuarter = new Map();
+  for (const row of rows) {
+    const date = row?.date || row?.asOfDate || row?.reportedDate;
+    const shares = numberFrom(row, ['outstandingShares', 'sharesOutstanding', 'sharesOut', 'ordinarySharesNumber']);
+    if (!date || !Number.isFinite(shares) || shares <= 0) continue;
+    const parsed = new Date(`${date}T12:00:00Z`);
+    if (!Number.isFinite(parsed.getTime())) continue;
+    const quarter = `${parsed.getUTCFullYear()}-Q${Math.floor(parsed.getUTCMonth() / 3) + 1}`;
+    const previous = byQuarter.get(quarter);
+    if (!previous || date > previous.date) byQuarter.set(quarter, { date, shares, source: 'Financial Modeling Prep' });
+  }
+  return [...byQuarter.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+async function alphaVantageSharesOutstandingHistory(symbol, token) {
+  const key = String(symbol || '').toUpperCase();
+  const cached = alphaSharesCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.rows;
+  const url = `https://www.alphavantage.co/query?function=SHARES_OUTSTANDING&symbol=${encodeURIComponent(key)}&apikey=${encodeURIComponent(token)}`;
+  const response = await fetch(url);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.Note || data?.Information || data?.['Error Message']) {
+    throw new Error(data?.Note || data?.Information || data?.['Error Message'] || `Alpha Vantage request failed (${response.status}).`);
+  }
+  const rows = Array.isArray(data?.quarterlyReports) ? data.quarterlyReports : (Array.isArray(data?.data) ? data.data : []);
+  const byQuarter = new Map();
+  for (const row of rows) {
+    const date = row?.fiscalDateEnding || row?.date || row?.periodOfReport || row?.reportedDate;
+    const shares = numberFrom(row, ['sharesOutstanding', 'outstandingShares', 'sharesOutstandingBasic', 'basicSharesOutstanding', 'sharesOutstandingDiluted', 'dilutedSharesOutstanding']);
+    if (!date || !Number.isFinite(shares) || shares <= 0) continue;
+    const parsed = new Date(`${date}T12:00:00Z`);
+    if (!Number.isFinite(parsed.getTime())) continue;
+    const quarter = `${parsed.getUTCFullYear()}-Q${Math.floor(parsed.getUTCMonth() / 3) + 1}`;
+    const previous = byQuarter.get(quarter);
+    if (!previous || date > previous.date) byQuarter.set(quarter, { date, shares, source: 'Alpha Vantage' });
+  }
+  const normalized = [...byQuarter.values()].sort((a, b) => a.date.localeCompare(b.date));
+  alphaSharesCache.set(key, { expiresAt: Date.now() + 24 * 60 * 60 * 1000, rows: normalized });
+  return normalized;
+}
+async function secSharesOutstandingHistory(symbol) {
+  const cik = await secCikForSymbol(symbol);
+  if (!cik) return [];
+  const facts = await secJson(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`);
+  // This DEI fact is the issuer-reported shares outstanding count.  It is an
+  // instantaneous fact, normally included in 10-Q and 10-K XBRL filings.
+  const entries = facts?.facts?.dei?.EntityCommonStockSharesOutstanding?.units?.shares || [];
+  const byQuarter = new Map();
+  for (const entry of entries) {
+    const date = entry?.end;
+    const shares = Number(entry?.val);
+    const form = String(entry?.form || '');
+    if (!date || !Number.isFinite(shares) || shares <= 0 || !['10-Q', '10-K', '20-F', '40-F'].includes(form)) continue;
+    const parsed = new Date(`${date}T12:00:00Z`);
+    if (!Number.isFinite(parsed.getTime())) continue;
+    const quarter = `${parsed.getUTCFullYear()}-Q${Math.floor(parsed.getUTCMonth() / 3) + 1}`;
+    const previous = byQuarter.get(quarter);
+    // Amendments or restatements can produce more than one fact for a quarter.
+    // Prefer the latest filed version, then the most recently reported value.
+    if (!previous || String(entry.filed || '') >= String(previous.filed || '')) {
+      byQuarter.set(quarter, { date, shares, source: 'SEC EDGAR', filed: entry.filed || '' });
+    }
+  }
+  return [...byQuarter.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+function mergeSharesOutstandingHistory(primary = [], secondary = [], tertiary = [], fallback = []) {
+  const byQuarter = new Map();
+  for (const rows of [fallback, tertiary, secondary, primary]) for (const row of rows) {
+    const date = row?.date;
+    if (!date || !Number.isFinite(row?.shares)) continue;
+    const parsed = new Date(`${date}T12:00:00Z`), key = `${parsed.getUTCFullYear()}-Q${Math.floor(parsed.getUTCMonth() / 3) + 1}`;
+    byQuarter.set(key, row);
+  }
+  return [...byQuarter.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+function median(values) {
+  const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+function splitAdjustedSharesHistory(rows = [], splits = []) {
+  let adjusted = rows.map(row => ({ ...row, timestamp: Date.parse(`${row.date}T12:00:00Z`) / 1000 })).filter(row => Number.isFinite(row.timestamp) && Number.isFinite(row.shares) && row.shares > 0);
+  for (const split of splits) {
+    const before = median(adjusted.filter(row => row.timestamp < split.timestamp && row.timestamp >= split.timestamp - 730 * 86400).map(row => row.shares));
+    const after = median(adjusted.filter(row => row.timestamp > split.timestamp && row.timestamp <= split.timestamp + 730 * 86400).map(row => row.shares));
+    // Apply a split only to a provider series that is demonstrably unadjusted.
+    // This prevents multiplying a source (such as Yahoo) that already restates
+    // historical share figures for the split.
+    const ratio = Number.isFinite(before) && before > 0 && Number.isFinite(after) ? after / before : null;
+    const looksUnadjusted = Number.isFinite(ratio) && ratio >= split.factor * 0.55 && ratio <= split.factor * 1.8;
+    if (looksUnadjusted) adjusted = adjusted.map(row => row.timestamp < split.timestamp ? { ...row, shares: row.shares * split.factor, splitAdjusted: true } : row);
+  }
+  return adjusted.map(({ timestamp, ...row }) => row);
+}
+function removeIsolatedShareOutliers(rows = []) {
+  const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+  return sorted.filter((row, index) => {
+    if (index === 0 || index === sorted.length - 1) return true;
+    const neighbor = median([sorted[index - 1].shares, sorted[index + 1].shares]);
+    if (!Number.isFinite(neighbor) || neighbor <= 0) return true;
+    const ratio = row.shares / neighbor;
+    // Keep genuine, sustained changes; hide only a single contradictory point
+    // between two near-identical quarterly reports from another provider.
+    return ratio >= 1 / 3.5 && ratio <= 3.5;
   });
 }
 function barclaysRating(value) {
@@ -2596,4 +2940,3 @@ app.whenReady().then(async () => {
 }).catch(error => dialog.showErrorBox('Individual Stock Dashboard startup error', error?.stack || error?.message || String(error)));
 app.on('before-quit', () => { isQuitting = true; void shortableSharesService?.close(); });
 app.on('window-all-closed', event => { event.preventDefault(); });
-
